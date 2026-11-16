@@ -1,0 +1,3 @@
+# Featured Event Prominent Colors
+
+Featured Event Prominent Colors are computed during CMS refresh instead of GraphQL query resolution, then stored as three nullable named color values: dark, light, and accent. The GraphQL response uses hard-coded fallback colors when stored values are null, extraction failures are persisted as null rather than fallback values, recomputation is skipped when a Featured Event Image URL is unchanged and stored colors exist, and the Featured Event Image URL is treated as the identity for color reuse because Featured Event Images are expected to be unique per Featured Event.

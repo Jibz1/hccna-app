@@ -1,0 +1,13 @@
+{
+	"extends": "@hccnj/config/tsconfig/base.json",
+	"compilerOptions": {
+		// Bun's runtime reads this file directly and does not resolve package-name
+		// "extends", so runtime-relevant options must live here, not in the base.
+		"experimentalDecorators": true,
+		"types": ["bun"],
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"exclude": ["node_modules", "dist"]
+}

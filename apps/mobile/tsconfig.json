@@ -1,0 +1,22 @@
+{
+  "extends": [
+    "expo/tsconfig.base.json",
+    "@hccnj/config/tsconfig/react-native.json"
+  ],
+  "compilerOptions": {
+    "rootDir": ".",
+    "plugins": [{ "name": "@effect/language-service" }],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "./src/**/*",
+    "global.d.ts",
+    "uniwind-env.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "vite-env.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "build"]
+}

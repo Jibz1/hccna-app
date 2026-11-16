@@ -1,0 +1,78 @@
+{
+	"title": "HCCNA Integration Health",
+	"tags": ["hccna", "integrations"],
+	"timezone": "browser",
+	"schemaVersion": 39,
+	"version": 1,
+	"refresh": "30s",
+	"templating": {
+		"list": [
+			{
+				"name": "datasource",
+				"type": "datasource",
+				"query": "prometheus",
+				"current": {
+					"text": "grafanacloud-hccna-prom",
+					"value": "grafanacloud-prom"
+				},
+				"hide": 0
+			},
+			{
+				"name": "job",
+				"label": "Job",
+				"type": "query",
+				"datasource": {
+					"type": "prometheus",
+					"uid": "${datasource}"
+				},
+				"definition": "label_values(http_server_request_duration_seconds_count, job)",
+				"query": {
+					"query": "label_values(http_server_request_duration_seconds_count, job)",
+					"refId": "job"
+				},
+				"refresh": 2,
+				"sort": 1,
+				"includeAll": true,
+				"allValue": ".*",
+				"multi": false,
+				"current": {
+					"text": "railway/hccna-backend-railway",
+					"value": "railway/hccna-backend-railway"
+				},
+				"hide": 0
+			}
+		]
+	},
+	"panels": [
+		{
+			"id": 1,
+			"title": "Plugin Requests",
+			"type": "timeseries",
+			"targets": [
+				{
+					"expr": "sum by (plugin) (rate(integration_ccb_requests_total{job=~\"$job\"}[5m]) + rate(integration_cms_requests_total{job=~\"$job\"}[5m]) + rate(integration_castr_requests_total{job=~\"$job\"}[5m]) + rate(integration_sendgrid_requests_total{job=~\"$job\"}[5m]) + rate(integration_strapi_requests_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{plugin}}"
+				}
+			],
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			}
+		},
+		{
+			"id": 2,
+			"title": "5xx Errors by Path Group",
+			"type": "timeseries",
+			"targets": [
+				{
+					"expr": "sum by (path_group) (rate(http_server_errors_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{path_group}}"
+				}
+			],
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			}
+		}
+	]
+}

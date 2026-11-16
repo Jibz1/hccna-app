@@ -1,0 +1,11 @@
+query StrapiV2Sermons($filters: SermonFiltersInput, $sort: [String], $pageSize: Int) {
+  sermons(filters: $filters, sort: $sort, pagination: { pageSize: $pageSize }) {
+    slug
+    Title
+    date
+    YoutubeLink
+    Thumbnail { url }
+    Speaker { FullName Title Image { url } }
+  }
+  sermonPage { Intro { title description featureImage { url } } body }
+}

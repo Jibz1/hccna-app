@@ -1,0 +1,20 @@
+FROM oven/bun:1.4.4
+WORKDIR /usr/src/app
+
+COPY package.json bun.lock bunfig.toml turbo.json ./
+COPY apps/server/package.json ./apps/server/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY packages ./packages
+COPY patches ./patches
+COPY scripts/sync-effect-repo.mjs ./scripts/
+COPY apps/server/scripts/check-dependency-policy.ts ./apps/server/scripts/
+COPY apps/server/scripts/patch-effect-tsgo.ts ./apps/server/scripts/
+RUN cd apps/server && bun run scripts/check-dependency-policy.ts
+RUN SKIP_EFFECT_REPO_SYNC=1 bun install --frozen-lockfile --production --filter '@hccnj/server' --filter './packages/*'
+
+COPY apps/server/drizzle ./apps/server/drizzle
+COPY apps/server/scripts/railway-migrate.ts ./apps/server/scripts/
+USER bun
+WORKDIR /usr/src/app/apps/server
+ENV NODE_ENV=production
+ENTRYPOINT ["bun", "./scripts/railway-migrate.ts"]

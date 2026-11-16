@@ -1,0 +1,4 @@
+[test]
+# Every `bun test` run here (`bun run test`, `test:summary`, a single file) loads the preload,
+# so module mocks behave the same however the suite is started.
+preload = ["./scripts/test-preload.ts"]

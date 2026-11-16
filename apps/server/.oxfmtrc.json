@@ -1,0 +1,40 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"useTabs": true,
+	"tabWidth": 2,
+	"printWidth": 100,
+	"semi": true,
+	"singleQuote": false,
+	"trailingComma": "all",
+	"bracketSpacing": true,
+	"arrowParens": "always",
+	"endOfLine": "lf",
+	"experimentalSortImports": {
+		"order": "asc",
+		"ignoreCase": true,
+		"newlinesBetween": true,
+		"groups": [["builtin", "external"], ["internal"], ["parent", "sibling", "index"], ["type"]],
+		"internalPattern": ["~/**", "@/**"]
+	},
+	"overrides": [
+		{
+			"files": [
+				"src/effect/services/__tests__/GraphQLResponseCacheService.test.ts",
+				"src/effect/services/__tests__/*.lifecycle.test.ts"
+			],
+			"options": {
+				"sortImports": {
+					"internalPattern": ["~/", "@/"]
+				}
+			}
+		}
+	],
+	"ignorePatterns": [
+		"node_modules",
+		"dist",
+		"*.d.ts",
+		".github/**",
+		"bun.lock",
+		"docker-compose.yml"
+	]
+}

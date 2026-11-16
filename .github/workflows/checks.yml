@@ -1,0 +1,53 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.4"
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Dependency policy
+        run: bun run --cwd apps/server deps:policy
+
+      - name: Build, typecheck, lint, format, test
+        run: bunx turbo run build typecheck lint fmt:check test
+        env:
+          # Test environment variables (dummy values for CI)
+          NODE_ENV: test
+          CASTR_USR: test_user
+          CASTR_PW: test_password
+          CASTR_API_END_POINT: https://test.castr.io/api
+          CCB_API_USER: test_ccb_user
+          CCB_API_PASSWORD: test_ccb_password
+          CCB_CHURCH_URL: https://test.ccbchurch.com
+          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          SENDGRID_API_KEY: SG.test_key

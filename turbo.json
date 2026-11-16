@@ -1,0 +1,33 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"remoteCache": { "enabled": true },
+	"globalPassThroughEnv": [
+		"NODE_ENV",
+		"APP_*",
+		"CASTR_*",
+		"CCB_*",
+		"DATABASE_URL",
+		"REDIS_URL",
+		"SENDGRID_*",
+		"SENTRY_*",
+		"STATSIG_*",
+		"FIREBASE_*",
+		"GOOGLE_*",
+		"STRAPI_*",
+		"OTEL_*",
+		"GRAPHQL_*",
+		"EXPO_*"
+	],
+	"tasks": {
+		"build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
+		"@hccnj/server#build": { "dependsOn": ["^build"], "outputs": [] },
+		"typecheck": { "dependsOn": ["^build"] },
+		"lint": { "dependsOn": ["^build"] },
+		"fmt:check": {},
+		"@hccnj/server#emit-schema": { "cache": false },
+		"codegen": { "dependsOn": ["@hccnj/server#emit-schema"], "cache": false },
+		"@hccnj/mobile#test:native:fonts": { "cache": false },
+		"test": { "dependsOn": ["^build"], "cache": false },
+		"dev": { "cache": false, "persistent": true }
+	}
+}

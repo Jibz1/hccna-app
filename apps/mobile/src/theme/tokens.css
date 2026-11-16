@@ -1,0 +1,85 @@
+/* Generated from tokens.ts by bun run theme:generate. Do not edit. */
+
+@theme {
+  --spacing-px: 1px;
+  --spacing-none: 0px;
+  --spacing-6xs: 4px;
+  --spacing-5xs: 8px;
+  --spacing-4xs: 12px;
+  --spacing-3xs: 16px;
+  --spacing-2xs: 20px;
+  --spacing-xs: 24px;
+  --spacing-s: 32px;
+  --spacing-m: 40px;
+  --spacing-l: 48px;
+  --spacing-xl: 56px;
+  --spacing-2xl: 64px;
+  --spacing-3xl: 80px;
+  --spacing-4xl: 96px;
+  --spacing-5xl: 120px;
+
+  --color-design-background: #211c19;
+  --color-design-text: #fff4e7;
+  --color-design-text-muted: #c8b6a7;
+  --color-design-accent: #f1b58f;
+  --color-design-surface: rgba(66, 51, 43, 0.8);
+  --color-design-surface-strong: #3a2e28;
+  --color-design-border: rgba(255, 221, 188, 0.13);
+  --color-design-input-border: rgba(255, 221, 188, 0.28);
+  --color-design-overlay: rgba(17, 12, 9, 0.72);
+  --color-design-on-image: #fffdf8;
+  --color-design-selected: #574033;
+  --color-design-chrome: rgba(46, 36, 30, 0.94);
+  --color-design-shadow: rgba(0, 0, 0, 0.24);
+  --color-design-negative: #ffb4ab;
+  --color-design-photo-overlay: rgba(13, 10, 8, 0.56);
+  --color-design-modal-chrome: rgba(46, 36, 30, 0.94);
+  --color-background-surface: #3a2e28;
+  --color-background-surface-muted: #49382f;
+}
+
+@layer theme {
+  :root {
+    @variant dark {
+      --color-design-background: #211c19;
+      --color-design-text: #fff4e7;
+      --color-design-text-muted: #c8b6a7;
+      --color-design-accent: #f1b58f;
+      --color-design-surface: rgba(66, 51, 43, 0.8);
+      --color-design-surface-strong: #3a2e28;
+      --color-design-border: rgba(255, 221, 188, 0.13);
+      --color-design-input-border: rgba(255, 221, 188, 0.28);
+      --color-design-overlay: rgba(17, 12, 9, 0.72);
+      --color-design-on-image: #fffdf8;
+      --color-design-selected: #574033;
+      --color-design-chrome: rgba(46, 36, 30, 0.94);
+      --color-design-shadow: rgba(0, 0, 0, 0.24);
+      --color-design-negative: #ffb4ab;
+      --color-design-photo-overlay: rgba(13, 10, 8, 0.56);
+      --color-design-modal-chrome: rgba(46, 36, 30, 0.94);
+      --color-background-surface: #3a2e28;
+      --color-background-surface-muted: #49382f;
+    }
+
+    @variant light {
+      --color-design-background: #ffffff;
+      --color-design-text: #342b27;
+      --color-design-text-muted: #756358;
+      --color-design-accent: #995234;
+      --color-design-surface: rgba(255, 251, 245, 0.78);
+      --color-design-surface-strong: #fffcf7;
+      --color-design-border: rgba(139, 100, 76, 0.13);
+      --color-design-input-border: rgba(139, 100, 76, 0.28);
+      --color-design-overlay: rgba(35, 25, 20, 0.65);
+      --color-design-on-image: #fffdf8;
+      --color-design-selected: #f5e5d8;
+      --color-design-chrome: rgba(255, 251, 245, 0.9);
+      --color-design-shadow: rgba(98, 62, 38, 0.1);
+      --color-design-negative: #a33a32;
+      --color-design-photo-overlay: rgba(57, 42, 33, 0.25);
+      --color-design-modal-chrome: rgba(253, 252, 255, 0.9);
+      --color-background-surface: #fdfcff;
+      --color-background-surface-muted: #faf1ed;
+    }
+  }
+}

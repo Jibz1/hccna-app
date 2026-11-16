@@ -1,0 +1,22 @@
+query StrapiV2Campuses {
+  campuses(pagination: { pageSize: 100 }) {
+    slug
+    CampusName
+    Phone
+    Address
+    CityState
+    FacebookChannelLink
+    InstagramChannelLink
+    LiveStreamChannelLink
+    body
+    Header { title description featureImage { url } }
+    Stream { CastrID }
+    GivingPlatforms(pagination: { pageSize: 100 }) { Platform link }
+    leaderships(pagination: { pageSize: 100 }) {
+      PageName
+      slug
+      Heading { featureImage { url } }
+      Leader { LeadershipGroup BioIntro body ProfilePicture { url } }
+    }
+  }
+}

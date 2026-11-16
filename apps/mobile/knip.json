@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app.config.ts",
+    "doctor.config.ts",
+    "fingerprint.config.js",
+    "plugins/*.js",
+    "scripts/*.ts",
+    "src/entry.tsx"
+  ],
+  "ignore": [
+    "repos/**",
+    "scripts/lint-ratchet.canary.tsx",
+    "src/**/__generated__/**"
+  ],
+  "ignoreDependencies": [
+    "@expo-google-fonts/work-sans",
+    "@types/react-relay",
+    "@types/relay-runtime"
+  ]
+}

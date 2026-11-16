@@ -1,0 +1,16 @@
+query StrapiV2Events($filters: EventFiltersInput, $sort: [String]) {
+  events(filters: $filters, sort: $sort, pagination: { pageSize: 100 }) {
+    slug
+    EventName
+    EventStartDate
+    EventEndDate
+    Reoccurrence
+    ZoomLink
+    body
+    Header { title description featureImage { url } }
+    Speaker(pagination: { pageSize: 100 }) { FullName Title Image { url } }
+    Sessions(pagination: { pageSize: 100 }) { Date StartTime EndTime Label }
+    MultipleTimes
+    RecurringTimes(pagination: { pageSize: 100 }) { StartTime Label }
+  }
+}

@@ -1,0 +1,18 @@
+{
+	"extends": "@hccnj/config/tsconfig/base.json",
+	"compilerOptions": {
+		"composite": true,
+		"types": [
+			"bun"
+		],
+		"noEmit": false,
+		"emitDeclarationOnly": true,
+		"declaration": true,
+		"declarationMap": true,
+		"rootDir": "./src",
+		"outDir": "./dist"
+	},
+	"include": [
+		"src/**/*.ts"
+	]
+}

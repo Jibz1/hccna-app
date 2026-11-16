@@ -1,0 +1,56 @@
+server:
+  - changed-files:
+      - any-glob-to-any-file: "apps/server/**"
+
+server-rs:
+  - changed-files:
+      - any-glob-to-any-file: "apps/server-rs/**"
+
+mobile:
+  - changed-files:
+      - any-glob-to-any-file: "apps/mobile/**"
+
+shared:
+  - changed-files:
+      - any-glob-to-any-file: "packages/**"
+
+schema:
+  - changed-files:
+      - any-glob-to-any-file: "packages/schema/**"
+
+castr:
+  - changed-files:
+      - any-glob-to-any-file: "packages/castr/**"
+
+ccb:
+  - changed-files:
+      - any-glob-to-any-file: "packages/ccb/**"
+
+strapi:
+  - changed-files:
+      - any-glob-to-any-file: "packages/strapi-v2/**"
+
+configuration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "packages/config/**"
+          - "bunfig.toml"
+          - "turbo.json"
+          - "knip.config.ts"
+          - ".gitignore"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/package.json"
+          - "bun.lock"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "**/*.md"

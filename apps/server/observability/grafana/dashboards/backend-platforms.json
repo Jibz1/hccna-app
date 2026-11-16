@@ -1,0 +1,2656 @@
+{
+	"annotations": {
+		"list": [
+			{
+				"builtIn": 1,
+				"datasource": {
+					"type": "grafana",
+					"uid": "-- Grafana --"
+				},
+				"enable": true,
+				"hide": true,
+				"iconColor": "rgba(0, 211, 255, 1)",
+				"name": "Annotations & Alerts",
+				"type": "dashboard"
+			}
+		]
+	},
+	"description": "Compare Cloud Run, Railway TypeScript, and Railway Rust. Includes HTTP and GraphQL traffic, errors, latency, Rust gateway routes, metrics collection health, and Rust process resources. Metrics refresh every minute; rates use five-minute windows.",
+	"editable": true,
+	"fiscalYearStartMonth": 0,
+	"graphTooltip": 1,
+	"links": [],
+	"panels": [
+		{
+			"id": 17,
+			"title": "Reading this dashboard",
+			"type": "text",
+			"gridPos": {
+				"h": 5,
+				"w": 24,
+				"x": 0,
+				"y": 0
+			},
+			"options": {
+				"mode": "markdown",
+				"content": "**Cloud Run · Railway TypeScript · Railway Rust** — select **Backend** to filter. Refresh: **1 minute**. Timing charts use **5-minute** windows; the timing tables use the selected time range. **Operation** and **Call type** filter both operation sections.\n\n**No traffic** means idle; missing series mean no telemetry. Rust **forward** includes TypeScript time, so do not sum both request counts. Cloud Run data is historical where available."
+			}
+		},
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 5
+			},
+			"id": 3,
+			"panels": [],
+			"title": "Backend comparison",
+			"type": "row"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"decimals": 2,
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "gray",
+								"value": null
+							},
+							{
+								"color": "red",
+								"value": 0
+							},
+							{
+								"color": "yellow",
+								"value": 99
+							},
+							{
+								"color": "green",
+								"value": 99.9
+							}
+						]
+					},
+					"unit": "percent",
+					"noValue": "No traffic",
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic",
+									"color": "gray"
+								}
+							}
+						}
+					]
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 5,
+				"w": 8,
+				"x": 0,
+				"y": 6
+			},
+			"id": 1,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "none",
+				"justifyMode": "auto",
+				"orientation": "horizontal",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "value_and_name"
+			},
+			"targets": [
+				{
+					"expr": "100 * (1 - ((sum by (job) (rate(http_server_errors_total{job=~\"$job\"}[5m])) or 0 * sum by (job) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))) / sum by (job) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))))",
+					"legendFormat": "{{job}}",
+					"refId": "A",
+					"instant": true,
+					"range": false
+				}
+			],
+			"title": "HTTP success rate (5m)",
+			"type": "stat",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"description": "Share of observed requests without HTTP 5xx responses. No traffic means no requests in the five-minute window; it is not a synthetic uptime check."
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"noValue": "No traffic"
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 5,
+				"w": 8,
+				"x": 8,
+				"y": 6
+			},
+			"id": 4,
+			"options": {
+				"colorMode": "none",
+				"graphMode": "none",
+				"justifyMode": "auto",
+				"orientation": "horizontal",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "value_and_name"
+			},
+			"targets": [
+				{
+					"expr": "sum by (job) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{job}}",
+					"refId": "A",
+					"instant": true,
+					"range": false
+				}
+			],
+			"title": "Request rate",
+			"type": "stat",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"description": "Observed requests per second across all instrumented paths. An idle backend remains at zero when metrics are arriving."
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No traffic",
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic"
+								}
+							}
+						}
+					]
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 5,
+				"w": 8,
+				"x": 16,
+				"y": 6
+			},
+			"id": 5,
+			"options": {
+				"colorMode": "none",
+				"graphMode": "none",
+				"justifyMode": "auto",
+				"orientation": "horizontal",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				},
+				"textMode": "value_and_name"
+			},
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_server_request_duration_seconds_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{job}}",
+					"refId": "A",
+					"instant": true,
+					"range": false
+				}
+			],
+			"title": "HTTP p95",
+			"type": "stat",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"description": "95th percentile of observed HTTP durations over five minutes. No traffic means a percentile cannot be calculated."
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 6,
+				"w": 24,
+				"x": 0,
+				"y": 11
+			},
+			"id": 2,
+			"targets": [
+				{
+					"expr": "max by (job, service_revision, cloud_region, deployment_environment, instance) (target_info{job=~\"$job\"})",
+					"format": "table",
+					"instant": true,
+					"range": false,
+					"refId": "A"
+				}
+			],
+			"title": "What's running",
+			"transformations": [
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": {
+							"Time": true,
+							"Value": true
+						},
+						"indexByName": {
+							"cloud_region": 2,
+							"deployment_environment": 1,
+							"instance": 4,
+							"job": 0,
+							"service_revision": 3
+						},
+						"renameByName": {
+							"job": "Backend job",
+							"deployment_environment": "Environment",
+							"cloud_region": "Region",
+							"service_revision": "Revision",
+							"instance": "Instance"
+						}
+					}
+				}
+			],
+			"type": "table",
+			"description": "Live resource metadata. Rust identifies its private scrape endpoint; it does not export a deployment revision. Missing hosts have no current telemetry."
+		},
+		{
+			"id": 29,
+			"title": "Rust vs TypeScript — same operation",
+			"type": "row",
+			"collapsed": false,
+			"panels": [],
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 17
+			}
+		},
+		{
+			"id": 30,
+			"title": "How to read the comparison",
+			"type": "text",
+			"gridPos": {
+				"h": 5,
+				"w": 24,
+				"x": 0,
+				"y": 18
+			},
+			"options": {
+				"mode": "markdown",
+				"content": "Each row matches an **operation name + call type** over the selected time range. **Avg Δ % = (Rust / TypeScript − 1) × 100**: negative means lower observed Rust latency; positive means higher. Select **Backend → All** (or both Railway backends) to compare.\n\nRust avg, p95, and local calls cover only requests Rust **answered itself**. **Rust forwarded** counts requests passed whole to TypeScript, which the TypeScript columns already include; an operation Rust only forwards has no Rust timing. Calls are estimated; **No samples** means no observed counter increase. Inputs, cache states, and traffic mix differ, so this is not a controlled benchmark."
+			}
+		},
+		{
+			"id": 31,
+			"title": "Same-operation comparison — selected range",
+			"type": "table",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 12,
+				"w": 24,
+				"x": 0,
+				"y": 23
+			},
+			"description": "Matches operationName and operationType across Railway Rust and TypeScript. Average and p95 use the same selected time range. Rust avg, Rust p95, and Rust local calls use only route=\"local\", the requests Rust answered itself. Rust forwarded counts route=\"forward\" requests: their time is TypeScript's plus a network hop, and the TypeScript columns already include them. Avg Δ % is 100 × (Rust average / TypeScript average − 1), calculated only when both sides have observed calls and the TypeScript average is positive. Missing sides stay No samples. Counts are extrapolated estimates. This compares aggregate traffic, not paired requests.",
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "(sum by (operationName, operationType) (increase(graphql_envelop_request_duration_sum{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) / (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "B",
+					"expr": "(sum by (operationName, operationType) (increase(graphql_envelop_request_duration_sum{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) / (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "C",
+					"expr": "(100 * ((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_sum{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) / (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) / on (operationName, operationType) ((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_sum{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) / (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) > 0) - 1)) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "D",
+					"expr": "(histogram_quantile(0.95, sum by (le, operationName, operationType) (increase(graphql_envelop_request_duration_bucket{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range]))) and on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "E",
+					"expr": "(histogram_quantile(0.95, sum by (le, operationName, operationType) (increase(graphql_envelop_request_duration_bucket{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range]))) and on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "F",
+					"expr": "(sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"local\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "G",
+					"expr": "(sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "H",
+					"expr": "(sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",route=\"forward\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (((sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=\"railway/hccna-backend-rs\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0) or on (operationName, operationType) (sum by (operationName, operationType) (increase(graphql_envelop_request_duration_count{job=~\"$job\",job=~\"(railway/)?hccna-backend-railway\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0)) * (0 / 0))",
+					"format": "table",
+					"instant": true,
+					"range": false
+				}
+			],
+			"transformations": [
+				{
+					"id": "merge",
+					"options": {}
+				},
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": {
+							"Time": true
+						},
+						"indexByName": {
+							"operationName": 0,
+							"operationType": 1,
+							"Value #A": 2,
+							"Value #B": 3,
+							"Value #C": 4,
+							"Value #D": 5,
+							"Value #E": 6,
+							"Value #F": 7,
+							"Value #H": 8,
+							"Value #G": 9
+						},
+						"renameByName": {
+							"operationName": "Operation",
+							"operationType": "Call type",
+							"Value #A": "Rust avg",
+							"Value #B": "TS avg",
+							"Value #C": "Avg Δ %",
+							"Value #D": "Rust p95",
+							"Value #E": "TS p95",
+							"Value #F": "Rust local calls",
+							"Value #H": "Rust forwarded",
+							"Value #G": "TS calls"
+						}
+					}
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"min": 0,
+					"decimals": 2,
+					"noValue": "No samples",
+					"custom": {
+						"align": "auto",
+						"filterable": true
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No samples"
+								}
+							}
+						}
+					]
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Operation"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "string"
+							},
+							{
+								"id": "custom.width",
+								"value": 280
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Call type"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "string"
+							},
+							{
+								"id": "custom.width",
+								"value": 85
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Rust avg"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 100
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "TS avg"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 100
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Rust p95"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 100
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "TS p95"
+						},
+						"properties": [
+							{
+								"id": "custom.width",
+								"value": 100
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Avg Δ %"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "percent"
+							},
+							{
+								"id": "decimals",
+								"value": 1
+							},
+							{
+								"id": "min",
+								"value": -100
+							},
+							{
+								"id": "custom.width",
+								"value": 110
+							},
+							{
+								"id": "custom.cellOptions",
+								"value": {
+									"type": "color-text"
+								}
+							},
+							{
+								"id": "color",
+								"value": {
+									"mode": "thresholds"
+								}
+							},
+							{
+								"id": "thresholds",
+								"value": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": null
+										},
+										{
+											"color": "text",
+											"value": 0
+										},
+										{
+											"color": "red",
+											"value": 1e-6
+										}
+									]
+								}
+							},
+							{
+								"id": "noValue",
+								"value": "—"
+							},
+							{
+								"id": "mappings",
+								"value": [
+									{
+										"type": "special",
+										"options": {
+											"match": "nan",
+											"result": {
+												"text": "—",
+												"color": "#8e8e8e"
+											}
+										}
+									}
+								]
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Rust local calls"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "short"
+							},
+							{
+								"id": "decimals",
+								"value": 0
+							},
+							{
+								"id": "custom.width",
+								"value": 125
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Rust forwarded"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "short"
+							},
+							{
+								"id": "decimals",
+								"value": 0
+							},
+							{
+								"id": "custom.width",
+								"value": 125
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "TS calls"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "short"
+							},
+							{
+								"id": "decimals",
+								"value": 0
+							},
+							{
+								"id": "custom.width",
+								"value": 105
+							}
+						]
+					}
+				]
+			},
+			"options": {
+				"showHeader": true,
+				"cellHeight": "sm",
+				"sortBy": [
+					{
+						"displayName": "Operation",
+						"desc": false
+					}
+				]
+			}
+		},
+		{
+			"id": 25,
+			"title": "Backend-calltype: query and mutation timing",
+			"type": "row",
+			"collapsed": false,
+			"panels": [],
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 35
+			}
+		},
+		{
+			"id": 26,
+			"title": "Query and mutation timing — selected range",
+			"type": "table",
+			"description": "Average and estimated p95 request duration over the selected dashboard time range, grouped by backend, operation name, and call type. Only operations with observed counter increases are listed. Calls are extrapolated estimates. Rust rows are split by route: railway-rs-local is work Rust answered itself; railway-rs-forward is requests passed whole to TypeScript, so their time includes TypeScript's and a network hop. Rust series recorded before the route label existed appear as railway-rs. These are aggregate metrics, not individual request traces. Use Operation and Call type to filter this section.",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 12,
+				"w": 24,
+				"x": 0,
+				"y": 36
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "label_join(label_replace(label_replace(label_replace(label_replace(sum by (job, operationName, operationType, route) (increase(graphql_envelop_request_duration_sum{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) / (sum by (job, operationName, operationType, route) (increase(graphql_envelop_request_duration_count{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0), \"backend\", \"railway-rs\", \"job\", \"railway/hccna-backend-rs\"), \"backend\", \"railway-rs-$1\", \"route\", \"(local|forward)\"), \"backend\", \"railway-ts\", \"job\", \"(railway/)?hccna-backend-railway\"), \"backend\", \"cloud-run\", \"job\", \"hccna-backend\"), \"backend_call\", \"-\", \"backend\", \"operationName\")",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "B",
+					"expr": "label_join(label_replace(label_replace(label_replace(label_replace(histogram_quantile(0.95, sum by (le, job, operationName, operationType, route) (increase(graphql_envelop_request_duration_bucket{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range]))) and on (job, operationName, operationType, route) (sum by (job, operationName, operationType, route) (increase(graphql_envelop_request_duration_count{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0), \"backend\", \"railway-rs\", \"job\", \"railway/hccna-backend-rs\"), \"backend\", \"railway-rs-$1\", \"route\", \"(local|forward)\"), \"backend\", \"railway-ts\", \"job\", \"(railway/)?hccna-backend-railway\"), \"backend\", \"cloud-run\", \"job\", \"hccna-backend\"), \"backend_call\", \"-\", \"backend\", \"operationName\")",
+					"format": "table",
+					"instant": true,
+					"range": false
+				},
+				{
+					"refId": "C",
+					"expr": "label_join(label_replace(label_replace(label_replace(label_replace(sum by (job, operationName, operationType, route) (increase(graphql_envelop_request_duration_count{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[$__range])) > 0, \"backend\", \"railway-rs\", \"job\", \"railway/hccna-backend-rs\"), \"backend\", \"railway-rs-$1\", \"route\", \"(local|forward)\"), \"backend\", \"railway-ts\", \"job\", \"(railway/)?hccna-backend-railway\"), \"backend\", \"cloud-run\", \"job\", \"hccna-backend\"), \"backend_call\", \"-\", \"backend\", \"operationName\")",
+					"format": "table",
+					"instant": true,
+					"range": false
+				}
+			],
+			"transformations": [
+				{
+					"id": "merge",
+					"options": {}
+				},
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": {
+							"Time": true,
+							"job": true,
+							"backend": true,
+							"operationName": true,
+							"route": true
+						},
+						"indexByName": {
+							"backend_call": 0,
+							"operationType": 1,
+							"Value #A": 2,
+							"Value #B": 3,
+							"Value #C": 4
+						},
+						"renameByName": {
+							"backend_call": "Backend-calltype",
+							"operationType": "Call type",
+							"Value #A": "Average",
+							"Value #B": "p95",
+							"Value #C": "Calls (est.)"
+						}
+					}
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"min": 0,
+					"decimals": 2,
+					"noValue": "—",
+					"custom": {
+						"align": "auto",
+						"filterable": true
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Backend-calltype"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "string"
+							},
+							{
+								"id": "custom.width",
+								"value": 430
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Call type"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "string"
+							},
+							{
+								"id": "custom.width",
+								"value": 110
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Calls (est.)"
+						},
+						"properties": [
+							{
+								"id": "unit",
+								"value": "short"
+							},
+							{
+								"id": "decimals",
+								"value": 0
+							}
+						]
+					}
+				]
+			},
+			"options": {
+				"showHeader": true,
+				"cellHeight": "sm",
+				"sortBy": [
+					{
+						"displayName": "p95",
+						"desc": true
+					}
+				]
+			}
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic"
+								}
+							}
+						}
+					],
+					"color": {
+						"mode": "palette-classic"
+					},
+					"min": 0
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 48
+			},
+			"id": 27,
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "label_join(label_replace(label_replace(label_replace(label_replace(histogram_quantile(0.95, sum by (le, job, operationName, operationType, route) (rate(graphql_envelop_request_duration_bucket{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[5m]))) and on (job, operationName, operationType, route) (sum by (job, operationName, operationType, route) (rate(graphql_envelop_request_duration_count{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[5m])) > 0), \"backend\", \"railway-rs\", \"job\", \"railway/hccna-backend-rs\"), \"backend\", \"railway-rs-$1\", \"route\", \"(local|forward)\"), \"backend\", \"railway-ts\", \"job\", \"(railway/)?hccna-backend-railway\"), \"backend\", \"cloud-run\", \"job\", \"hccna-backend\"), \"backend_call\", \"-\", \"backend\", \"operationName\")",
+					"legendFormat": "{{backend_call}} ({{operationType}})"
+				}
+			],
+			"title": "p95 by backend and operation (5m)",
+			"type": "timeseries",
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"description": "Rolling five-minute GraphQL request duration, grouped by backend, operation name, and query/mutation type. Gaps mean no observed requests in that window. Rust is split by route: railway-rs-local is work Rust answered itself; railway-rs-forward includes TypeScript's time and a network hop."
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic"
+								}
+							}
+						}
+					],
+					"color": {
+						"mode": "palette-classic"
+					},
+					"min": 0
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 48
+			},
+			"id": 28,
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "label_join(label_replace(label_replace(label_replace(label_replace(sum by (job, operationName, operationType, route) (rate(graphql_envelop_request_duration_sum{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[5m])) / (sum by (job, operationName, operationType, route) (rate(graphql_envelop_request_duration_count{job=~\"$job\",operationName=~\"$operation\",operationType=~\"$calltype\"}[5m])) > 0), \"backend\", \"railway-rs\", \"job\", \"railway/hccna-backend-rs\"), \"backend\", \"railway-rs-$1\", \"route\", \"(local|forward)\"), \"backend\", \"railway-ts\", \"job\", \"(railway/)?hccna-backend-railway\"), \"backend\", \"cloud-run\", \"job\", \"hccna-backend\"), \"backend_call\", \"-\", \"backend\", \"operationName\")",
+					"legendFormat": "{{backend_call}} ({{operationType}})"
+				}
+			],
+			"title": "Average by backend and operation (5m)",
+			"type": "timeseries",
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"description": "Rolling five-minute GraphQL request duration, grouped by backend, operation name, and query/mutation type. Gaps mean no observed requests in that window. Rust is split by route: railway-rs-local is work Rust answered itself; railway-rs-forward includes TypeScript's time and a network hop."
+		},
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 56
+			},
+			"id": 6,
+			"panels": [],
+			"title": "Traffic and errors",
+			"type": "row"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Cloud Run"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "blue"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway TypeScript"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "green"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway Rust"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 57
+			},
+			"id": 7,
+			"targets": [
+				{
+					"expr": "sum by (job) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{job}}",
+					"refId": "A"
+				}
+			],
+			"title": "Request rate by backend",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percent",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic",
+									"color": "gray"
+								}
+							}
+						}
+					]
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Cloud Run"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "blue"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway TypeScript"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "green"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway Rust"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 57
+			},
+			"id": 8,
+			"targets": [
+				{
+					"expr": "100 * ((sum by (job) (rate(http_server_errors_total{job=~\"$job\"}[5m])) or 0 * sum by (job) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))) / sum by (job) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{job}}",
+					"refId": "A"
+				}
+			],
+			"title": "5xx error ratio",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"description": "HTTP 5xx responses divided by observed requests. No ratio is shown during an idle window."
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					}
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 24,
+				"x": 0,
+				"y": 65
+			},
+			"id": 9,
+			"targets": [
+				{
+					"expr": "sum by (job, path_group, status_class) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{job}} {{path_group}} {{status_class}}",
+					"refId": "A"
+				}
+			],
+			"title": "Requests by path and status",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 73
+			},
+			"id": 10,
+			"panels": [],
+			"title": "Latency",
+			"type": "row"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic"
+								}
+							}
+						}
+					]
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Cloud Run"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "blue"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway TypeScript"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "green"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway Rust"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 74
+			},
+			"id": 11,
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_server_request_duration_seconds_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{job}}",
+					"refId": "A"
+				}
+			],
+			"title": "HTTP p95 by backend",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic"
+								}
+							}
+						}
+					]
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Cloud Run"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "blue"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway TypeScript"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "green"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway Rust"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 74
+			},
+			"id": 12,
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, job) (rate(graphql_envelop_request_duration_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{job}}",
+					"refId": "A"
+				}
+			],
+			"title": "GraphQL p95 by backend",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					}
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 24,
+				"x": 0,
+				"y": 82
+			},
+			"id": 13,
+			"targets": [
+				{
+					"expr": "sum by (job, operationName) (rate(graphql_envelop_request_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{job}} {{operationName}}",
+					"refId": "A"
+				}
+			],
+			"title": "GraphQL operations",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"id": 14,
+			"title": "Rust gateway — hccna-backend-rs",
+			"type": "row",
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 90
+			},
+			"panels": []
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					}
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 91
+			},
+			"id": 15,
+			"targets": [
+				{
+					"expr": "sum by (job, route, status_class) (rate(gateway_requests_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{job}} {{route}} {{status_class}}",
+					"refId": "A"
+				}
+			],
+			"title": "Rust gateway request rate by route",
+			"type": "timeseries",
+			"description": "Rust /graphql requests by route: local means Rust answered the request; forward means Rust proxied the complete request to the TypeScript service.",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No traffic",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					},
+					"mappings": [
+						{
+							"type": "special",
+							"options": {
+								"match": "nan",
+								"result": {
+									"text": "No traffic"
+								}
+							}
+						}
+					]
+				},
+				"overrides": []
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 91
+			},
+			"id": 16,
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, job, route) (rate(gateway_request_duration_seconds_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{job}} {{route}}",
+					"refId": "A"
+				}
+			],
+			"title": "Rust gateway p95 by route",
+			"type": "timeseries",
+			"description": "Rust /graphql requests by route: local means Rust answered the request; forward means Rust proxied the complete request to the TypeScript service.",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			}
+		},
+		{
+			"id": 18,
+			"title": "Rust collection health and resources",
+			"type": "row",
+			"collapsed": false,
+			"panels": [],
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 99
+			}
+		},
+		{
+			"id": 19,
+			"title": "Rust metrics scrape",
+			"type": "stat",
+			"description": "The last Alloy scrape of Rust’s private metrics port. Up confirms scraping. Down means Alloy is reporting but cannot reach Rust. No recent data means Grafana has received no scrape status for 5 minutes: the collector is stopped or cannot export. No Rust telemetry means Rust is filtered out or has reported nothing for a day; it does not mean healthy.",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 0,
+				"y": 100
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "none",
+					"noValue": "No Rust telemetry",
+					"mappings": [
+						{
+							"type": "value",
+							"options": {
+								"-1": {
+									"text": "No recent data",
+									"color": "red"
+								},
+								"0": {
+									"text": "Down",
+									"color": "red"
+								},
+								"1": {
+									"text": "Up",
+									"color": "green"
+								}
+							}
+						}
+					],
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "red",
+								"value": null
+							},
+							{
+								"color": "green",
+								"value": 1
+							}
+						]
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"colorMode": "value",
+				"graphMode": "none",
+				"textMode": "value_and_name",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				}
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "min by (job) (up{job=~\"$job\",job=\"railway/hccna-backend-rs\"}) or -1 * group by (job) (present_over_time(up{job=~\"$job\",job=\"railway/hccna-backend-rs\"}[1d]))",
+					"legendFormat": "{{job}}",
+					"instant": true,
+					"range": false
+				}
+			],
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			]
+		},
+		{
+			"id": 20,
+			"title": "Rust last scrape age",
+			"type": "stat",
+			"description": "Age of the latest scrape-status sample Grafana received in the last day. The expected scrape interval is 60 seconds. Samples older than 120 seconds indicate delayed collection or export; the age keeps rising while the collector is stopped.",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 6,
+				"y": 100
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"noValue": "No Rust telemetry",
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "yellow",
+								"value": 120
+							},
+							{
+								"color": "red",
+								"value": 180
+							}
+						]
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"colorMode": "value",
+				"graphMode": "none",
+				"textMode": "value_and_name",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				}
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "time() - max by (job) (timestamp(up{job=~\"$job\",job=\"railway/hccna-backend-rs\"}) or max_over_time(timestamp(up{job=~\"$job\",job=\"railway/hccna-backend-rs\"})[1d:1m]))",
+					"legendFormat": "{{job}}",
+					"instant": true,
+					"range": false
+				}
+			],
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			]
+		},
+		{
+			"id": 21,
+			"title": "Rust process memory",
+			"type": "stat",
+			"description": "Resident memory of the Rust process. This is not total Railway container memory; TypeScript does not export an equivalent process metric.",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 12,
+				"y": 100
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "bytes",
+					"noValue": "No Rust telemetry"
+				},
+				"overrides": []
+			},
+			"options": {
+				"colorMode": "none",
+				"graphMode": "none",
+				"textMode": "value_and_name",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				}
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "sum by (job) (process_resident_memory_bytes{job=~\"$job\",job=\"railway/hccna-backend-rs\"})",
+					"legendFormat": "{{job}}",
+					"instant": true,
+					"range": false
+				}
+			],
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			]
+		},
+		{
+			"id": 22,
+			"title": "Rust process CPU",
+			"type": "stat",
+			"description": "CPU seconds per second consumed by the Rust process. A value of 1 means one fully occupied CPU core.",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 18,
+				"y": 100
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "cores",
+					"noValue": "No Rust telemetry"
+				},
+				"overrides": []
+			},
+			"options": {
+				"colorMode": "none",
+				"graphMode": "none",
+				"textMode": "value_and_name",
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				}
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "sum by (job) (rate(process_cpu_seconds_total{job=~\"$job\",job=\"railway/hccna-backend-rs\"}[5m]))",
+					"legendFormat": "{{job}}",
+					"instant": true,
+					"range": false
+				}
+			],
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			]
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "bytes",
+					"noValue": "No Rust telemetry",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Cloud Run"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "blue"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway TypeScript"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "green"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway Rust"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 104
+			},
+			"id": 23,
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "sum by (job) (process_resident_memory_bytes{job=~\"$job\",job=\"railway/hccna-backend-rs\"})",
+					"legendFormat": "{{job}}"
+				}
+			],
+			"title": "Rust resident memory",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"description": "Rust process metrics collected by Alloy over the private Railway network."
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "cores",
+					"noValue": "No Rust telemetry",
+					"custom": {
+						"drawStyle": "line",
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"fillOpacity": 8,
+						"showPoints": "never",
+						"spanNulls": false,
+						"axisCenteredZero": false,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"hideFrom": {
+							"tooltip": false,
+							"viz": false,
+							"legend": false
+						}
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Cloud Run"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "blue"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway TypeScript"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "green"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byRegexp",
+							"options": "^Railway Rust"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"mode": "fixed",
+									"fixedColor": "orange"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 104
+			},
+			"id": 24,
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "sum by (job) (rate(process_cpu_seconds_total{job=~\"$job\",job=\"railway/hccna-backend-rs\"}[5m]))",
+					"legendFormat": "{{job}}"
+				}
+			],
+			"title": "Rust CPU usage",
+			"type": "timeseries",
+			"transformations": [
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^railway/hccna-backend-rs(.*)$",
+						"renamePattern": "Railway Rust$1"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^(railway/)?hccna-backend-railway(.*)$",
+						"renamePattern": "Railway TypeScript$2"
+					}
+				},
+				{
+					"id": "renameByRegex",
+					"options": {
+						"regex": "^hccna-backend( .*)?$",
+						"renamePattern": "Cloud Run$1"
+					}
+				}
+			],
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom",
+					"calcs": ["lastNotNull", "max"]
+				},
+				"tooltip": {
+					"mode": "multi",
+					"sort": "desc"
+				}
+			},
+			"description": "Rust process metrics collected by Alloy over the private Railway network."
+		}
+	],
+	"refresh": "1m",
+	"schemaVersion": 42,
+	"tags": ["hccna", "backend", "railway", "rust"],
+	"templating": {
+		"list": [
+			{
+				"current": {
+					"text": "grafanacloud-hccna-prom",
+					"value": "grafanacloud-prom"
+				},
+				"hide": 0,
+				"name": "datasource",
+				"options": [],
+				"query": "prometheus",
+				"type": "datasource"
+			},
+			{
+				"allValue": "(railway/)?hccna-backend(-railway|-rs)?",
+				"current": {
+					"text": ["All"],
+					"value": ["$__all"]
+				},
+				"datasource": {
+					"type": "prometheus",
+					"uid": "${datasource}"
+				},
+				"definition": "label_values(http_server_request_duration_seconds_count, job)",
+				"hide": 0,
+				"includeAll": true,
+				"label": "Backend",
+				"multi": true,
+				"name": "job",
+				"options": [],
+				"query": {
+					"query": "label_values(http_server_request_duration_seconds_count, job)",
+					"refId": "job"
+				},
+				"refresh": 2,
+				"sort": 1,
+				"type": "query",
+				"regex": "/^(?:railway\\/)?hccna-backend(?:-railway|-rs)?$/",
+				"description": "Select backend jobs; Railway Rust is railway/hccna-backend-rs. Cloud Run appears only in time ranges with retained telemetry."
+			},
+			{
+				"name": "operation",
+				"label": "Operation",
+				"type": "query",
+				"datasource": {
+					"type": "prometheus",
+					"uid": "${datasource}"
+				},
+				"definition": "label_values(graphql_envelop_request_duration_count{job=~\"$job\"}, operationName)",
+				"query": {
+					"query": "label_values(graphql_envelop_request_duration_count{job=~\"$job\"}, operationName)",
+					"refId": "operation"
+				},
+				"description": "Filters the operation timing and Rust vs TypeScript comparison sections by GraphQL operation name.",
+				"allValue": ".*",
+				"current": {
+					"text": ["All"],
+					"value": ["$__all"]
+				},
+				"hide": 0,
+				"includeAll": true,
+				"multi": true,
+				"options": [],
+				"refresh": 2,
+				"sort": 1
+			},
+			{
+				"name": "calltype",
+				"label": "Call type",
+				"type": "custom",
+				"query": "query,mutation,unknown",
+				"description": "Filters the operation timing and Rust vs TypeScript comparison sections. Unknown includes requests without a resolved GraphQL operation type.",
+				"allValue": ".*",
+				"current": {
+					"text": ["All"],
+					"value": ["$__all"]
+				},
+				"hide": 0,
+				"includeAll": true,
+				"multi": true,
+				"options": [
+					{
+						"text": "query",
+						"value": "query",
+						"selected": false
+					},
+					{
+						"text": "mutation",
+						"value": "mutation",
+						"selected": false
+					},
+					{
+						"text": "unknown",
+						"value": "unknown",
+						"selected": false
+					}
+				]
+			}
+		]
+	},
+	"time": {
+		"from": "now-6h",
+		"to": "now"
+	},
+	"timepicker": {},
+	"timezone": "browser",
+	"title": "HCCNA Backend: Cloud Run vs Railway",
+	"uid": "hccna-backend-platforms",
+	"version": 1,
+	"weekStart": ""
+}

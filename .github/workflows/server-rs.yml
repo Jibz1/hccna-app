@@ -1,0 +1,166 @@
+# Checks and builds the experimental Rust backend in apps/server-rs, and deploys it to its own
+# Railway service from main. It never touches the production TS service
+# (hccna-backend). Design: docs/superpowers/specs/2026-10-13-server-rust-benchmark-design.md.
+name: server-rs
+
+on:
+  push:
+    branches: [main]
+    # Deploy for changes to the Rust app or its deployment workflow.
+    paths:
+      - "apps/server-rs/**"
+      - ".github/workflows/server-rs.yml"
+  pull_request:
+    # Also validate shared contracts on PRs without deploying those changes.
+    paths:
+      - "apps/server-rs/**"
+      - "packages/schema/schema.graphql"
+      - "packages/strapi-v2/**"
+      - ".github/workflows/server-rs.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-rs-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RAILWAY_CLI_VERSION: "5.63.1"
+  RAILWAY_ENVIRONMENT: production
+  RAILWAY_SERVICE: hccna-backend-rs
+  # Railway's generated domain for the service. Update it if the service domain changes.
+  RAILWAY_HEALTH_URL: https://hccna-backend-rs-production.up.railway.app/readyz
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/server-rs
+    # A throwaway Postgres for the tests that read TEST_DATABASE_URL (they skip without it).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ada
+          POSTGRES_PASSWORD: example-password
+          POSTGRES_DB: example
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ada -d example"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgres://ada:example-password@localhost:5432/example
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
+        with:
+          toolchain: "1.93"
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: apps/server-rs
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --locked
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/server-rs/Dockerfile
+          push: false
+          provenance: false
+          cache-from: type=gha,scope=server-rs-image
+          cache-to: type=gha,scope=server-rs-image,mode=max
+
+  # Deploys only after the Railway service exists and the owner sets the repository variable
+  # SERVER_RS_DEPLOY_ENABLED=true (apps/server-rs/bench/RUNBOOK.md).
+  deploy-railway:
+    needs: [check, image]
+    if: github.event_name == 'push' && vars.SERVER_RS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: DATABASE_URL
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      DEPLOY_MESSAGE: ${{ github.sha }} (run ${{ github.run_id }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Railway CLI
+        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}"
+
+      # Sentry tags the service's events with SENTRY_RELEASE. CLI deploys get no
+      # RAILWAY_GIT_COMMIT_SHA, so the commit is recorded here, without its own redeploy;
+      # the `railway up` below picks it up. A failure here never blocks the deploy.
+      - name: Record the release for Sentry
+        run: |
+          railway variable set "SENTRY_RELEASE=${GITHUB_SHA}" \
+            --service "$RAILWAY_SERVICE" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --skip-deploys ||
+            echo "::warning::Could not set SENTRY_RELEASE; Sentry events keep the previous release"
+
+      # Uploads the monorepo root; the service builds apps/server-rs/Dockerfile.
+      - name: Deploy to Railway
+        run: |
+          railway up --ci \
+            --service "$RAILWAY_SERVICE" \
+            --environment "$RAILWAY_ENVIRONMENT" \
+            --message "$DEPLOY_MESSAGE"
+
+      - name: Wait for deployment
+        run: |
+          for attempt in $(seq 1 60); do
+            status=$(railway deployment list --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --json --limit 10 |
+              jq -r --arg message "$DEPLOY_MESSAGE" '[.[] | select(.meta.cliMessage == $message)][0].status // "PENDING"')
+            case "$status" in
+              SUCCESS) echo "Railway deployment is active"; exit 0 ;;
+              FAILED|CRASHED|REMOVED|SKIPPED) echo "::error::Railway deployment ended as $status"; exit 1 ;;
+            esac
+            echo "deployment status (check $attempt): $status"
+            sleep 10
+          done
+          echo "::error::Railway deployment did not become active in time"
+          exit 1
+
+      - name: Health check
+        run: |
+          curl --fail --silent --show-error --max-time 10 --retry 5 --retry-all-errors --retry-delay 5 "$RAILWAY_HEALTH_URL"
+          echo
+          echo "Railway is ready ($RAILWAY_HEALTH_URL)"

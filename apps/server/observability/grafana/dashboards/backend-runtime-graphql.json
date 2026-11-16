@@ -1,0 +1,497 @@
+{
+	"uid": "hccna-backend-runtime-graphql",
+	"title": "HCCNA Backend Runtime & GraphQL",
+	"tags": ["hccna", "backend", "graphql", "effect", "runtime"],
+	"timezone": "browser",
+	"schemaVersion": 39,
+	"version": 1,
+	"refresh": "30s",
+	"time": {
+		"from": "now-6h",
+		"to": "now"
+	},
+	"templating": {
+		"list": [
+			{
+				"name": "datasource",
+				"type": "datasource",
+				"query": "prometheus",
+				"current": {
+					"text": "grafanacloud-hccna-prom",
+					"value": "grafanacloud-prom"
+				},
+				"hide": 0
+			},
+			{
+				"name": "job",
+				"label": "Job",
+				"type": "query",
+				"datasource": {
+					"type": "prometheus",
+					"uid": "${datasource}"
+				},
+				"definition": "label_values(http_server_request_duration_seconds_count, job)",
+				"query": {
+					"query": "label_values(http_server_request_duration_seconds_count, job)",
+					"refId": "job"
+				},
+				"refresh": 2,
+				"sort": 1,
+				"includeAll": true,
+				"allValue": ".*",
+				"multi": false,
+				"current": {
+					"text": "railway/hccna-backend-railway",
+					"value": "railway/hccna-backend-railway"
+				},
+				"hide": 0
+			}
+		]
+	},
+	"panels": [
+		{
+			"id": 1,
+			"title": "API Availability (5m)",
+			"type": "stat",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 6,
+				"x": 0,
+				"y": 0
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percent",
+					"decimals": 2,
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "red",
+								"value": null
+							},
+							{
+								"color": "yellow",
+								"value": 99
+							},
+							{
+								"color": "green",
+								"value": 99.9
+							}
+						]
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"reduceOptions": {
+					"calcs": ["lastNotNull"],
+					"fields": "",
+					"values": false
+				}
+			},
+			"targets": [
+				{
+					"expr": "100 * (1 - ((sum(rate(http_server_errors_total{job=~\"$job\"}[5m])) / (sum(rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m])) > 0)) or 0 * sum(rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))))",
+					"legendFormat": "availability"
+				}
+			]
+		},
+		{
+			"id": 2,
+			"title": "HTTP Request Rate",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 6,
+				"y": 0
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (method, path_group, status_class) (rate(http_server_request_duration_seconds_count{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{method}} {{path_group}} {{status_class}}"
+				}
+			]
+		},
+		{
+			"id": 3,
+			"title": "HTTP p95 Latency",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 8
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, path_group) (rate(http_server_request_duration_seconds_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{path_group}} p95"
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "GraphQL Operation Rate",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 8
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (operationName, operationType) (rate(graphql_envelop_request_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{operationType}} {{operationName}}"
+				}
+			]
+		},
+		{
+			"id": 5,
+			"title": "GraphQL Operation p95 Latency",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 16
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, operationName, operationType) (rate(graphql_envelop_request_duration_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{operationType}} {{operationName}} p95"
+				}
+			]
+		},
+		{
+			"id": 6,
+			"title": "GraphQL Error Rate",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 16
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "eps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (operationName, phase, path) (rate(graphql_envelop_error_result{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{operationName}} {{phase}} {{path}}"
+				}
+			]
+		},
+		{
+			"id": 7,
+			"title": "Integration Request Rate",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 24
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (plugin) (rate({__name__=~\"integration_.*_(requests|operations)_total\", job=~\"$job\"}[5m]))",
+					"legendFormat": "{{plugin}}"
+				}
+			]
+		},
+		{
+			"id": 8,
+			"title": "Service Request p95 Latency",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 24
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "histogram_quantile(0.95, sum by (le, service, action) (rate(service_request_duration_bucket{job=~\"$job\"}[5m])))",
+					"legendFormat": "{{service}} {{action}} p95"
+				}
+			]
+		},
+		{
+			"id": 9,
+			"title": "Service Error Rate",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 8,
+				"x": 0,
+				"y": 32
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "eps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (service, action) (rate(service_error_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{service}} {{action}}"
+				}
+			]
+		},
+		{
+			"id": 10,
+			"title": "Force-Sampled Telemetry",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 8,
+				"x": 8,
+				"y": 32
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "eps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (reason, path_group) (rate(telemetry_forced_sample_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{reason}} {{path_group}}"
+				}
+			]
+		},
+		{
+			"id": 11,
+			"title": "Effect Child Fiber Runtime",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 8,
+				"x": 16,
+				"y": 32
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "child_fibers_active{job=~\"$job\"}",
+					"legendFormat": "active"
+				},
+				{
+					"expr": "sum(rate(child_fibers_started{job=~\"$job\"}[5m]))",
+					"legendFormat": "started/sec"
+				},
+				{
+					"expr": "sum(rate(child_fiber_successes{job=~\"$job\"}[5m]))",
+					"legendFormat": "successes/sec"
+				},
+				{
+					"expr": "sum(rate(child_fiber_failures{job=~\"$job\"}[5m]))",
+					"legendFormat": "failures/sec"
+				}
+			]
+		},
+		{
+			"id": 12,
+			"title": "GraphQL Requests by App Version",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 8,
+				"x": 0,
+				"y": 40
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (app_version) (rate(graphql_envelop_request_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{app_version}}"
+				}
+			]
+		},
+		{
+			"id": 13,
+			"title": "GraphQL Requests by OS",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 8,
+				"x": 8,
+				"y": 40
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (os_name) (rate(graphql_envelop_request_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{os_name}}"
+				}
+			]
+		},
+		{
+			"id": 14,
+			"title": "GraphQL Requests by Device",
+			"type": "timeseries",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 8,
+				"x": 16,
+				"y": 40
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "reqps"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "sum by (device_type) (rate(graphql_envelop_request_total{job=~\"$job\"}[5m]))",
+					"legendFormat": "{{device_type}}"
+				}
+			]
+		},
+		{
+			"id": 15,
+			"title": "Top GraphQL Client Combinations",
+			"type": "table",
+			"datasource": {
+				"type": "prometheus",
+				"uid": "${datasource}"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 24,
+				"x": 0,
+				"y": 48
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short"
+				},
+				"overrides": []
+			},
+			"targets": [
+				{
+					"expr": "topk(20, sum by (app_version, os_name, device_type) (increase(graphql_envelop_request_total{job=~\"$job\"}[$__range])))",
+					"legendFormat": "{{app_version}} {{os_name}} {{device_type}}",
+					"format": "table",
+					"instant": true
+				}
+			]
+		}
+	]
+}

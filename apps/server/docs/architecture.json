@@ -1,0 +1,629 @@
+{
+	"$schema": "https://hccnj.dev/schemas/architecture-map.v1.json",
+	"name": "HCCNA Backend",
+	"description": "Bun + Hono + GraphQL Yoga + Effect backend for the HCCNA church mobile app. Mid-migration to an Effect-first architecture where transport layers stay thin and behavior lives behind Effect services.",
+	"generatedAt": "2026-05-14",
+	"runtime": {
+		"engine": "Bun 1.3.x",
+		"language": "TypeScript",
+		"entrypoint": "src/index.ts",
+		"lifecycle": "src/effect/Main.ts",
+		"managedRuntime": "src/effect/Runtime.ts",
+		"config": "src/effect/AppConfig.ts",
+		"ports": {
+			"http": 8080,
+			"metrics": 9184
+		}
+	},
+	"transport": {
+		"description": "Thin HTTP shell; all real work delegates into the Effect ManagedRuntime via boundary adapters.",
+		"http": {
+			"file": "src/app.ts",
+			"framework": "Hono (OpenAPIHono)",
+			"middleware": [
+				"cors",
+				"compress",
+				"prettyJSON",
+				"requestId",
+				"timeout",
+				"pinoLogger",
+				"Sentry"
+			],
+			"endpoints": [
+				{
+					"path": "/graphql",
+					"kind": "graphql",
+					"owner": "src/routes/graphql.ts"
+				},
+				{ "path": "/v1/*", "kind": "rest", "owner": "src/routes/v1/index.ts" },
+				{
+					"path": "/reference",
+					"kind": "docs",
+					"owner": "@scalar/hono-api-reference"
+				},
+				{
+					"path": "/openapi.json",
+					"kind": "spec",
+					"owner": "@hono/zod-openapi"
+				},
+				{ "path": "/healthz", "kind": "health", "owner": "src/app.ts" },
+				{
+					"path": "/readyz",
+					"kind": "health",
+					"owner": "OperationalReadinessService",
+					"adapter": "src/transport/http/honoEffectRunner.ts"
+				},
+				{
+					"path": "/metrics",
+					"kind": "telemetry",
+					"owner": "src/app.ts (metricsApp, port 9184)"
+				}
+			]
+		},
+		"rest": {
+			"framework": "@hono/zod-openapi",
+			"version": "v1",
+			"routes": [
+				{
+					"path": "/v1/attendance-exports",
+					"file": "src/routes/v1/attendance-exports.ts"
+				}
+			]
+		},
+		"graphql": {
+			"framework": "GraphQL Yoga + Pothos",
+			"context": "src/graphql/context.ts",
+			"schemaBuilder": "src/graphql/builder.ts",
+			"schemaEntry": "src/graphql/schema.ts",
+			"schemaSDL": "schema.graphql",
+			"plugins": [
+				"@pothos/plugin-directives",
+				"@pothos/plugin-drizzle",
+				"@pothos/plugin-errors",
+				"@pothos/plugin-relay",
+				"@pothos/plugin-scope-auth",
+				"@pothos/plugin-simple-objects",
+				"@pothos/plugin-tracing",
+				"@pothos/plugin-with-input",
+				"@pothos/plugin-zod"
+			],
+			"yogaPlugins": ["apq", "defer-stream", "prometheus", "response-cache", "@envelop/sentry"],
+			"auth": {
+				"model": "src/graphql/auth-model.ts",
+				"scopes": "src/graphql/auth-scopes.ts",
+				"authenticator": "src/graphql/authenticator.ts"
+			},
+			"caching": {
+				"edge": "Stellate (stellate.ts)",
+				"responseCache": "src/graphql/responseCache.ts",
+				"session": "src/graphql/sharedResponseCachePolicy.ts"
+			},
+			"operationCounts": { "queries": 22, "mutations": 18 },
+			"modules": [
+				{
+					"name": "scriptures/vod",
+					"file": "src/graphql/schema/scriptures/vod.ts"
+				},
+				{ "name": "cms/sermon", "file": "src/graphql/schema/cms/sermon.ts" },
+				{ "name": "cms/home", "file": "src/graphql/schema/cms/home.ts" },
+				{
+					"name": "cms/campuses",
+					"file": "src/graphql/schema/cms/campuses.ts"
+				},
+				{ "name": "cms/events", "file": "src/graphql/schema/cms/events.ts" },
+				{ "name": "cms/core", "file": "src/graphql/schema/cms/core.ts" },
+				{
+					"name": "cms/thoughtOfGod",
+					"file": "src/graphql/schema/cms/thoughtOfGod.ts"
+				},
+				{
+					"name": "cms/webhookUpdate",
+					"file": "src/graphql/schema/cms/webhookUpdate.ts"
+				},
+				{
+					"name": "castr/stream",
+					"file": "src/graphql/schema/castr/stream.ts"
+				},
+				{
+					"name": "event/attendance",
+					"file": "src/graphql/schema/event/attendance.ts"
+				},
+				{ "name": "user", "file": "src/graphql/schema/user/index.ts" },
+				{
+					"name": "user/update-user",
+					"file": "src/graphql/schema/user/update-user.ts"
+				},
+				{
+					"name": "user/send-broadcast",
+					"file": "src/graphql/schema/user/send-broadcast.ts"
+				},
+				{
+					"name": "user/profile",
+					"file": "src/graphql/schema/user/profile.ts"
+				},
+				{
+					"name": "user/donationsV2",
+					"file": "src/graphql/schema/user/donationsV2.ts"
+				}
+			]
+		},
+		"boundaries": {
+			"honoAdapter": "src/transport/http/honoEffectRunner.ts",
+			"graphqlAdapter": "src/graphql/context.ts (ctx.effect)",
+			"requestExecution": "src/effect/requestExecution.ts"
+		}
+	},
+	"effectRuntime": {
+		"description": "Layer-composed ManagedRuntime that provides all Effect services. Composed in tiers so dependencies flow upward.",
+		"file": "src/effect/Runtime.ts",
+		"layerTiers": [
+			{
+				"tier": 0,
+				"name": "Infra",
+				"services": [
+					"AppConfig",
+					"AppLogger",
+					"DbHealth",
+					"FirebaseAdmin",
+					"Redis",
+					"LRU",
+					"FirebaseAuth",
+					"ExportStorage",
+					"Mail",
+					"Statsig",
+					"GraphQLResponseCache",
+					"GraphQLRateLimitStore"
+				]
+			},
+			{
+				"tier": 1,
+				"name": "External Integrations",
+				"services": ["AuthService", "CCBService", "StrapiService", "CastrService"]
+			},
+			{
+				"tier": 2,
+				"name": "Domain",
+				"services": [
+					"CMSService",
+					"GivingService",
+					"VodService",
+					"WordOfActivationService",
+					"ProfileService",
+					"UserProfileUpdateService",
+					"StreamMappingService",
+					"AttendanceExportService",
+					"OperationalReadinessService"
+				]
+			}
+		]
+	},
+	"services": [
+		{
+			"name": "AppConfigLive",
+			"file": "src/effect/AppConfig.ts",
+			"role": "Typed runtime config via Effect Config",
+			"category": "infra"
+		},
+		{
+			"name": "AppLoggerService",
+			"file": "src/effect/services/AppLoggerService.ts",
+			"role": "Pino-backed structured logger",
+			"category": "infra"
+		},
+		{
+			"name": "RedisService",
+			"file": "src/effect/RedisService.ts",
+			"role": "Redis client lifecycle",
+			"category": "infra",
+			"deps": ["AppConfig"]
+		},
+		{
+			"name": "LRUService",
+			"file": "src/effect/LRUService.ts",
+			"role": "In-process LRU cache",
+			"category": "infra",
+			"deps": ["AppConfig"]
+		},
+		{
+			"name": "DbHealthService",
+			"file": "src/effect/services/DbHealthService.ts",
+			"role": "Postgres readiness probe",
+			"category": "infra"
+		},
+		{
+			"name": "FirebaseAdminService",
+			"file": "src/effect/services/FirebaseAdminService.ts",
+			"role": "Firebase Admin SDK wrapper (Firestore, Auth, secondary app)",
+			"category": "infra"
+		},
+		{
+			"name": "FirebaseAuthService",
+			"file": "src/effect/services/FirebaseAuthService.ts",
+			"role": "Firebase Auth (verify tokens, manage users)",
+			"category": "infra",
+			"deps": ["FirebaseAdmin"]
+		},
+		{
+			"name": "ExportStorageService",
+			"file": "src/effect/services/ExportStorageService.ts",
+			"role": "Cloud storage for generated exports (PDFs)",
+			"category": "infra",
+			"deps": ["AppConfig", "FirebaseAdmin"]
+		},
+		{
+			"name": "MailService",
+			"file": "src/effect/services/MailService.ts",
+			"role": "Transactional email via SendGrid",
+			"category": "infra",
+			"deps": ["AppConfig", "AppLogger"]
+		},
+		{
+			"name": "StatsigService",
+			"file": "src/effect/StatsigService.ts",
+			"role": "Feature flags and experimentation",
+			"category": "infra",
+			"deps": ["AppConfig", "AppLogger"]
+		},
+		{
+			"name": "GraphQLResponseCacheService",
+			"file": "src/effect/services/GraphQLResponseCacheService.ts",
+			"role": "Response cache for Yoga (Redis + LRU)",
+			"category": "infra",
+			"deps": ["Redis", "LRU"]
+		},
+		{
+			"name": "GraphQLRateLimitStoreService",
+			"file": "src/effect/services/GraphQLRateLimitStoreService.ts",
+			"role": "Per-operation rate limit store",
+			"category": "infra"
+		},
+		{
+			"name": "AuthService",
+			"file": "src/effect/services/AuthService.ts",
+			"role": "App-level auth orchestration",
+			"category": "integration"
+		},
+		{
+			"name": "CCBService",
+			"file": "src/effect/services/CCBService.ts",
+			"role": "Church Community Builder API client (uses @hccnj/ccb)",
+			"category": "integration"
+		},
+		{
+			"name": "StrapiService",
+			"file": "src/effect/services/StrapiService.ts",
+			"role": "Strapi CMS read client",
+			"category": "integration"
+		},
+		{
+			"name": "CastrService",
+			"file": "src/effect/services/CastrService.ts",
+			"role": "Castr streaming platform client (uses @hccnj/castr)",
+			"category": "integration"
+		},
+		{
+			"name": "CMSService",
+			"file": "src/effect/services/CMSService.ts",
+			"role": "Domain-level CMS façade over Strapi / Postgres cache",
+			"category": "domain",
+			"subdir": "src/effect/services/cms"
+		},
+		{
+			"name": "GivingService",
+			"file": "src/effect/services/GivingService.ts",
+			"role": "User-facing giving / donation history",
+			"category": "domain"
+		},
+		{
+			"name": "VodService",
+			"file": "src/effect/services/VodService.ts",
+			"role": "Verse of the Day selection and lookup",
+			"category": "domain"
+		},
+		{
+			"name": "WordOfActivationService",
+			"file": "src/effect/services/WordOfActivationService.ts",
+			"role": "Monthly Word of Activation per user + subscription",
+			"category": "domain"
+		},
+		{
+			"name": "ProfileService",
+			"file": "src/effect/services/ProfileService.ts",
+			"role": "Read User Profile",
+			"category": "domain"
+		},
+		{
+			"name": "UserProfileUpdateService",
+			"file": "src/effect/services/UserProfileUpdateService.ts",
+			"role": "Mutate User Profile (linked CCB Individual etc.)",
+			"category": "domain"
+		},
+		{
+			"name": "StreamMappingService",
+			"file": "src/effect/services/StreamMappingService.ts",
+			"role": "Castr stream → app surface mapping",
+			"category": "domain"
+		},
+		{
+			"name": "AttendanceExportService",
+			"file": "src/effect/services/AttendanceExportService.ts",
+			"role": "Exemplar capability — PDF attendance exports",
+			"category": "domain",
+			"subdir": "src/effect/services/attendanceExport",
+			"exemplar": true
+		},
+		{
+			"name": "OperationalReadinessService",
+			"file": "src/effect/services/OperationalReadinessService.ts",
+			"role": "Aggregate readiness checks for /readyz",
+			"category": "domain"
+		}
+	],
+	"database": {
+		"engine": "Postgres",
+		"orm": "Drizzle ORM (1.0 beta) + drizzle-kit",
+		"configFile": "drizzle.config.ts",
+		"migrationsDir": "drizzle/",
+		"schemaEntry": "src/db/schema/index.ts",
+		"relations": "src/db/schema/relations.ts",
+		"domains": [
+			{
+				"domain": "Users & Auth",
+				"tables": [
+					{ "name": "users", "file": "src/db/schema/users.ts" },
+					{ "name": "departments", "file": "src/db/schema/users.ts" },
+					{ "name": "ministries", "file": "src/db/schema/users.ts" },
+					{
+						"name": "userDepartments",
+						"file": "src/db/schema/tables.ts",
+						"kind": "junction"
+					},
+					{
+						"name": "userMinistries",
+						"file": "src/db/schema/tables.ts",
+						"kind": "junction"
+					}
+				]
+			},
+			{
+				"domain": "Scriptures / Word of Activation",
+				"tables": [
+					{ "name": "scriptures", "file": "src/db/schema/scriptures.ts" },
+					{ "name": "dailyVerses", "file": "src/db/schema/scriptures.ts" },
+					{
+						"name": "wordActivationSubs",
+						"file": "src/db/schema/scriptures.ts"
+					}
+				]
+			},
+			{
+				"domain": "Giving (CCB cache)",
+				"tables": [
+					{ "name": "donations", "file": "src/db/schema/donations.ts" },
+					{
+						"name": "donationYearlySummaries",
+						"file": "src/db/schema/donations.ts"
+					},
+					{ "name": "donationSyncLogs", "file": "src/db/schema/donations.ts" }
+				]
+			},
+			{
+				"domain": "Attendance",
+				"tables": [
+					{
+						"name": "eventAttendanceSummaries",
+						"file": "src/db/schema/eventAttendance.ts"
+					},
+					{
+						"name": "eventAttendanceEntries",
+						"file": "src/db/schema/eventAttendance.ts"
+					},
+					{
+						"name": "attendancePdfExports",
+						"file": "src/db/schema/attendanceExports.ts"
+					}
+				]
+			},
+			{
+				"domain": "CMS Content (cached)",
+				"tables": [
+					{
+						"name": "coreSettings",
+						"file": "src/db/schema/cms-content/core.ts"
+					},
+					{
+						"name": "featuredEvents",
+						"file": "src/db/schema/cms-content/home.ts"
+					},
+					{
+						"name": "upComingEvents",
+						"file": "src/db/schema/cms-content/home.ts"
+					}
+				]
+			}
+		]
+	},
+	"integrations": {
+		"model": "Plugin manifests declare capabilities, telemetry, contract version, and an optional Layer factory. The registry assembles enabled plugins into a single Effect Layer.",
+		"registry": "src/modules/integrations/registry.ts",
+		"manifestSource": "src/modules/integrations/plugin-manifest.ts",
+		"contracts": "src/modules/integrations/telemetry/contracts.ts",
+		"config": "src/platform/config/plugins.ts",
+		"plugins": [
+			{
+				"id": "ccb",
+				"capabilities": ["churchApi"],
+				"external": "Church Community Builder REST API",
+				"workspacePackage": "@hccnj/ccb"
+			},
+			{
+				"id": "cms",
+				"capabilities": ["cms"],
+				"external": "CMS abstraction over Strapi"
+			},
+			{
+				"id": "castr",
+				"capabilities": ["streaming"],
+				"external": "Castr live streaming API",
+				"workspacePackage": "@hccnj/castr"
+			},
+			{
+				"id": "firebase",
+				"capabilities": ["auth", "documentStore"],
+				"external": "Firebase Admin (Auth + Firestore)"
+			},
+			{
+				"id": "sendgrid",
+				"capabilities": ["transactionalEmail"],
+				"external": "SendGrid Mail API"
+			},
+			{
+				"id": "redis",
+				"capabilities": ["cache", "rateLimit"],
+				"external": "Redis"
+			},
+			{
+				"id": "strapi",
+				"capabilities": ["cmsBackend"],
+				"external": "Strapi v4 CMS"
+			}
+		]
+	},
+	"packages": [
+		{
+			"name": "@hccnj/castr",
+			"path": "packages/castr",
+			"role": "Typed client for the Castr streaming API",
+			"modules": ["client.ts", "types.ts", "index.ts"]
+		},
+		{
+			"name": "@hccnj/ccb",
+			"path": "packages/ccb",
+			"role": "Typed client + Zod schemas for Church Community Builder",
+			"modules": ["client.ts", "cache-config.ts", "url.ts", "xml.ts", "types.ts", "schemas/"]
+		}
+	],
+	"observability": {
+		"errorTracking": {
+			"service": "Sentry",
+			"sdk": "@sentry/bun",
+			"init": "src/instrument.ts"
+		},
+		"tracing": {
+			"service": "OpenTelemetry",
+			"exporter": "OTLP HTTP",
+			"sdk": "src/telemetry.ts",
+			"effectBridge": "@effect/opentelemetry"
+		},
+		"metrics": {
+			"service": "Prometheus",
+			"endpoint": "/metrics on :9184",
+			"customRegistry": "src/platform/observability/prometheusRegistry.ts",
+			"files": "src/metrics/, src/metrics.ts"
+		},
+		"logging": {
+			"service": "Pino",
+			"middleware": "src/transport/http/pinoLoggerMiddleware.ts",
+			"redaction": "src/platform/observability/redaction.ts"
+		},
+		"graphqlMetrics": "@graphql-yoga/plugin-prometheus",
+		"guardrails": [
+			"scripts/check-observability.ts",
+			"scripts/check-effect-boundaries.ts",
+			"scripts/validate-observability-assets.ts"
+		]
+	},
+	"platform": {
+		"config": "src/platform/config/",
+		"observability": "src/platform/observability/"
+	},
+	"utils": {
+		"firebase": "src/utils/firebase.ts",
+		"ccbHelpers": "src/effect/services/giving/platforms.ts, src/effect/services/giving/parseGiving.ts, src/effect/services/giving/parsePaymentString.ts",
+		"castrHelpers": "src/utils/castr.ts, src/utils/castr/",
+		"dataLoaders": "src/graphql/loaders/ (castr, ccbForms, firebase, strapi, vod, woa)",
+		"honoAdapters": "src/transport/http/",
+		"messages": "src/utils/messages/email/",
+		"wordOfActivation": "src/utils/wordOfActivation/",
+		"stellateClient": "src/utils/stellate.ts",
+		"tabularExport": "src/utils/tabularExport.ts",
+		"recurrenceCalculator": "src/utils/recurrenceCalculator.ts"
+	},
+	"scripts": [
+		{
+			"file": "scripts/docker-entrypoint.ts",
+			"role": "Container entry, optionally runs migrations"
+		},
+		{ "file": "scripts/migrate.ts", "role": "Standalone DB migration runner" },
+		{
+			"file": "scripts/migrate-firebase-to-postgres.ts",
+			"role": "One-shot Firestore → Postgres data backfill (db:seed)"
+		},
+		{
+			"file": "scripts/check-dependency-policy.ts",
+			"role": "Dependency policy guardrail"
+		},
+		{
+			"file": "scripts/check-effect-boundaries.ts",
+			"role": "Ratchets Effect boundary violations"
+		},
+		{
+			"file": "scripts/check-observability.ts",
+			"role": "Required observability checks"
+		},
+		{
+			"file": "scripts/validate-observability-assets.ts",
+			"role": "Validates grafana / prom asset shape"
+		},
+		{ "file": "scripts/test-summary.ts", "role": "Vitest summary wrapper" }
+	],
+	"deployment": {
+		"container": "Dockerfile + docker-compose.yml",
+		"cloud": "Railway via .github/workflows/deploy-server.yml",
+		"edgeCache": "Stellate (stellate.ts) for GraphQL",
+		"migrations": {
+			"container": "run on startup unless RUN_MIGRATIONS=false",
+			"production": "manual Drizzle Migrations CI workflow (`bun run db:migrate:run`)",
+			"envOverride": "RUN_MIGRATIONS=false (set on Railway)"
+		}
+	},
+	"domain": {
+		"source": "CONTEXT.md",
+		"entities": [
+			"User",
+			"User Profile",
+			"CCB Individual",
+			"CCB Family",
+			"CCB Event",
+			"Attendance Event",
+			"Attendance Occurrence",
+			"Attending Group",
+			"CCB Participant",
+			"Attendance Entry",
+			"Attendance Snapshot",
+			"Giving",
+			"Donation",
+			"Giving Summary",
+			"CCB Transaction",
+			"Scripture",
+			"Verse of the Day",
+			"Word of Activation",
+			"Word of Activation Subscription",
+			"Integration",
+			"Integration Capability",
+			"Integration Manifest"
+		],
+		"capabilityReshapingPriority": ["CMS", "Giving", "Streaming", "Verse of the Day"]
+	},
+	"migrationState": {
+		"direction": "Effect-first; Hono/Yoga are transport adapters only",
+		"exemplar": "AttendanceExportService + src/effect/services/attendanceExport/*",
+		"guardrail": "scripts/check-effect-boundaries.ts (ratchet)",
+		"adrs": [
+			"docs/adr/0001-effect-service-style.md",
+			"docs/adr/0002-effect-execution-boundaries.md",
+			"docs/adr/0003-firebase-boundary.md",
+			"docs/effect-first-architecture-adr.md"
+		]
+	}
+}

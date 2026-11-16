@@ -1,0 +1,22 @@
+# deps
+node_modules/
+# Keep environment variables out of version control
+.env
+dist/
+# Package build artifacts
+packages/*/dist/
+packages/*/tsconfig.tsbuildinfo
+sbn/
+tsconfig.tsbuildinfo
+exports/
+.claude/
+.cursor/
+skills/
+.agents/
+.agent/
+.claude/
+.cursor/
+.turbo/
+/repos/
+.env.bak-remote-redis
+*.jsonl

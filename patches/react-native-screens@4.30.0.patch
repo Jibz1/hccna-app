@@ -1,0 +1,34 @@
+diff --git a/ios/tabs/host/RNSTabBarController.mm b/ios/tabs/host/RNSTabBarController.mm
+index bc9c64436da76959ecdc22539b94ce459e1e4ed2..53963a688c5d79ee56994699a705b78212171c6b 100644
+--- a/ios/tabs/host/RNSTabBarController.mm
++++ b/ios/tabs/host/RNSTabBarController.mm
+@@ -462,6 +462,15 @@ static void rns_pushViewController(__unsafe_unretained id self,
+ /// `tabBarController:shouldSelectViewController:` and the `UITab` `tabBarController:shouldSelectTab:`.
+ - (BOOL)interceptUserSelectionOfViewController:(nonnull UIViewController *)viewController
+ {
++  // Disabled tabs are action buttons, including when already selected. Emit
++  // the prevented-selection event for every user tap, never a selection echo.
++  if ([self shouldPreventNativeTabSelection:viewController]) {
++    // Ideally we'd call this AFTER we prevent, but there is no appropriate callback. As long as we
++    // emit the event asynchronously this is rather fine.
++    [self onDidPreventUserFromSelectingViewControllerWithKey:[self screenKeyForViewController:viewController]];
++    return YES;
++  }
++
+   BOOL repeatedSelection = viewController == self.selectedViewController;
+ #if RNS_UITAB_API_SDK_AVAILABLE
+   if (RNS_UITAB_API_ENABLED) {
+@@ -479,13 +488,6 @@ static void rns_pushViewController(__unsafe_unretained id self,
+     return YES;
+   }
+ 
+-  if ([self shouldPreventNativeTabSelection:viewController]) {
+-    // Ideally we'd call this AFTER we prevent, but there is no appropriate callback. As long as we
+-    // emit the event asynchronously this is rather fine.
+-    [self onDidPreventUserFromSelectingViewControllerWithKey:[self screenKeyForViewController:viewController]];
+-    return YES;
+-  }
+-
+   return NO;
+ }
+ 

@@ -1,0 +1,9 @@
+{
+	"name": "@hccnj/schema",
+	"version": "0.0.1",
+	"private": true,
+	"description": "GraphQL contract between HCCNA server and clients (SDL only; each app runs its own codegen)",
+	"exports": {
+		"./schema.graphql": "./schema.graphql"
+	}
+}

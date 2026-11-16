@@ -1,0 +1,13 @@
+[
+  "src/app/delete-account-confirmation.tsx",
+  "src/app/delete-account.tsx",
+  "src/components/campuses/CampusFollowBell.tsx",
+  "src/components/design-v2/VerseDetailScreen.tsx",
+  "src/components/events/ExportEventAttendanceModal.tsx",
+  "src/components/giving/GivingCard.tsx",
+  "src/hooks/auth/useOtpVerification.ts",
+  "src/hooks/profile/useSavePreferredCampus.ts",
+  "src/hooks/profile/useUpdateProfileMutation.ts",
+  "src/hooks/relay/useProfileEnrichmentRefresh.ts",
+  "src/hooks/useAsyncMutation.ts"
+]

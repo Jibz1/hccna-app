@@ -1,0 +1,17 @@
+dist/
+node_modules/
+.env
+
+pnpm-lock.yaml
+README.md
+bun.lockb
+.prettierrc.json
+package.json
+tsconfig.json
+/dist
+/node_modules
+/src/generatedTypes/strapi-zod
+schema.graphql
+/src/generatedTypes/**/*
+
+/repos/

@@ -1,0 +1,59 @@
+logging {
+  level = "warn"
+}
+
+prometheus.scrape "hccna_backend_rs" {
+  targets = [{
+    "__address__" = sys.env("RUST_METRICS_ADDRESS"),
+    "job"         = "railway/hccna-backend-rs",
+  }]
+  scrape_interval = "60s"
+  scrape_timeout  = "10s"
+  forward_to      = [otelcol.receiver.prometheus.hccna_backend_rs.receiver]
+}
+
+otelcol.receiver.prometheus "hccna_backend_rs" {
+  output {
+    metrics = [otelcol.processor.transform.hccna_backend_rs.input]
+  }
+}
+
+otelcol.processor.transform "hccna_backend_rs" {
+  error_mode = "propagate"
+  metric_statements {
+    context = "resource"
+    statements = [
+      `set(attributes["service.namespace"], "railway")`,
+      `set(attributes["service.name"], "hccna-backend-rs")`,
+      `set(attributes["cloud.provider"], "railway")`,
+      `set(attributes["deployment.environment"], "production")`,
+    ]
+  }
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana.input]
+  }
+}
+
+// The TS service supplies one percent-encoded `Authorization=Basic <base64 instance:token>`
+// header. Reference its Railway variable so credential rotation reaches both services.
+// Basic auth's password is a secret, so Alloy's UI and API hide it; a `headers` value
+// would be shown in plain text to anything on the private network. The TS service decodes
+// with decodeURIComponent, which keeps a raw "+"; url_decode would turn it into a space.
+// Use the deprecated top-level attributes: in v1.20.1 a `client_auth`-only block fails to
+// build its server half with "no credential source provided".
+otelcol.auth.basic "grafana" {
+  username = string.split(encoding.from_base64(string.trim_prefix(encoding.url_decode(string.replace(string.trim_prefix(sys.env("OTEL_EXPORTER_OTLP_HEADERS"), "Authorization="), "+", "%2B")), "Basic ")), ":")[0]
+  password = string.split(encoding.from_base64(string.trim_prefix(encoding.url_decode(string.replace(string.trim_prefix(sys.env("OTEL_EXPORTER_OTLP_HEADERS"), "Authorization="), "+", "%2B")), "Basic ")), ":")[1]
+}
+
+otelcol.exporter.otlphttp "grafana" {
+  client {
+    endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana.handler
+    timeout  = "10s"
+  }
+  sending_queue {
+    queue_size    = 100
+    num_consumers = 1
+  }
+}

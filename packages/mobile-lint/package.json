@@ -1,0 +1,20 @@
+{
+	"name": "@hccnj/mobile-lint",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Oxlint rules for the HCCNA mobile app",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./rules": "./rules.mjs"
+	},
+	"scripts": {
+		"test": "node --test \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@oxlint/plugins": "1.88.0"
+	},
+	"devDependencies": {
+		"oxlint": "catalog:"
+	}
+}

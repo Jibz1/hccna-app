@@ -1,0 +1,80 @@
+name: Drizzle Migrations CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Validate private connectivity or apply this revision's migrations
+        type: choice
+        options: [validate, migrate]
+        default: validate
+
+permissions:
+  contents: read
+
+env:
+  RAILWAY_CLI_VERSION: "5.63.1"
+  RAILWAY_ENVIRONMENT: production
+  RAILWAY_SERVICE: hccna-migrations
+
+jobs:
+  migrate-railway:
+    runs-on: ubuntu-latest
+    environment: DATABASE_URL
+    timeout-minutes: 30
+    concurrency:
+      group: migrations-railway
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Railway CLI
+        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}"
+
+      - name: Prepare migration image context
+        run: |
+          mkdir -p "$RUNNER_TEMP/migration-image"
+          git archive HEAD package.json bun.lock bunfig.toml turbo.json \
+            apps/server/package.json apps/mobile/package.json packages patches \
+            scripts/sync-effect-repo.mjs apps/server/scripts/check-dependency-policy.ts \
+            apps/server/scripts/patch-effect-tsgo.ts \
+            apps/server/drizzle apps/server/Dockerfile.migrations \
+            apps/server/scripts/railway-migrate.ts |
+            tar -x -C "$RUNNER_TEMP/migration-image"
+
+      # The runner has only a private DATABASE_URL reference, no public domain,
+      # no volume, and restart policy NEVER. Each invocation exits when done.
+      - name: Run inside Railway
+        working-directory: ${{ runner.temp }}/migration-image
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          MIGRATION_MODE: ${{ inputs.mode }}
+          MIGRATION_REVISION: ${{ github.sha }}
+          DEPLOY_MESSAGE: migrations ${{ github.sha }} (run ${{ github.run_id }})
+        run: |
+          railway variable set --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --skip-deploys \
+            "MIGRATION_MODE=$MIGRATION_MODE" "MIGRATION_REVISION=$MIGRATION_REVISION"
+          railway up --ci --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --message "$DEPLOY_MESSAGE"
+          for attempt in $(seq 1 90); do
+            deployment=$(railway deployment list --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --json --limit 10 |
+              jq -c --arg message "$DEPLOY_MESSAGE" '[.[] | select(.meta.cliMessage == $message)][0] // {}')
+            id=$(jq -r '.id // empty' <<< "$deployment")
+            status=$(jq -r '.status // "PENDING"' <<< "$deployment")
+            if [ -n "$id" ]; then
+              if messages=$(railway logs "$id" --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --deployment --lines 100 --json | jq -r '.message // empty') &&
+                grep -Fxq "MIGRATION_RUN_OK $MIGRATION_REVISION $MIGRATION_MODE" <<< "$messages"; then
+                echo "Private migration runner completed ($MIGRATION_MODE)"
+                exit 0
+              fi
+            fi
+            case "$status" in
+              FAILED|CRASHED|REMOVED|SKIPPED) echo "::error::Migration runner ended as $status without a completion marker"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Migration runner did not confirm completion"
+          exit 1

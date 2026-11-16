@@ -1,0 +1,61 @@
+# deps
+node_modules/
+dist/
+build/
+web-build/
+exports/
+sbn/
+
+# env & secrets — never commit
+.env
+.env.production
+.env*.local
+.env.local
+.env.bak-remote-redis
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+credentials/
+credentials.json
+google-services.json
+GoogleService-Info.plist
+
+# generated / build info
+apps/server-rs/target/
+*.tsbuildinfo
+.turbo/
+.expo/
+.metro-health-check*
+.kotlin/
+*.orig.*
+expo-env.d.ts
+packages/*/dist/
+packages/*/tsconfig.tsbuildinfo
+
+# native build outputs (expo prebuild regenerates)
+apps/mobile/ios/
+apps/mobile/android/
+*.tar.gz
+*.apk
+*.ipa
+*.aab
+*.zip
+
+# agent tooling & reference checkouts
+.claude/
+.cursor/
+.agents/
+.agent/
+.vscode/
+skills/
+repos/
+
+# misc
+.DS_Store
+npm-debug.*
+yarn-debug.*
+yarn-error.*

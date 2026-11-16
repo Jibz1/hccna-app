@@ -1,0 +1,9 @@
+{
+	"name": "@hccnj/config",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Shared tsconfig bases and tooling presets for the HCCNA monorepo",
+	"exports": {
+		"./tsconfig/*.json": "./tsconfig/*.json"
+	}
+}

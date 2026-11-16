@@ -1,0 +1,21 @@
+{
+	"name": "@hccnj/anti-slop",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Shared vendored anti-slop Oxlint rules",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./effect": "./src/effect/index.ts",
+		"./rules": "./rules.mjs"
+	},
+	"scripts": {
+		"test": "node --test \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@oxlint/plugins": "1.88.0"
+	},
+	"devDependencies": {
+		"oxlint": "catalog:"
+	}
+}

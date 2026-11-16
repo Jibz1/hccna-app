@@ -1,0 +1,47 @@
+{
+	"name": "@hccnj/monorepo",
+	"private": true,
+	"type": "module",
+	"packageManager": "bun@1.4.4",
+	"workspaces": {
+		"packages": [
+			"apps/*",
+			"packages/*"
+		],
+		"catalog": {
+			"effect": "4.0.5",
+			"oxlint": "1.88.0",
+			"oxlint-tsgolint": "7.0.2004"
+		}
+	},
+	"scripts": {
+		"postinstall": "bun scripts/sync-effect-repo.mjs",
+		"refs:sync": "bun scripts/sync-effect-repo.mjs",
+		"build": "turbo run build",
+		"typecheck": "turbo run typecheck",
+		"lint": "turbo run lint",
+		"fmt:check": "turbo run fmt:check",
+		"test": "turbo run test",
+		"codegen": "turbo run codegen",
+		"dev:server": "bun run --cwd apps/server dev",
+		"dev:mobile": "bun run --cwd apps/mobile dev:all",
+		"knip": "knip",
+		"observability:dashboard:check": "bun run --cwd apps/server observability:dashboard:check",
+		"observability:dashboard:publish": "bun run --cwd apps/server observability:dashboard:publish",
+		"observability:collector:deploy": "railway up apps/server/observability/alloy --path-as-root --project c56f6ebf-17ff-41af-8740-70e769720898 --environment production --service hccna-grafana-alloy --ci"
+	},
+	"devDependencies": {
+		"turbo": "^2.11.9",
+		"knip": "^6.42.0"
+	},
+	"overrides": {
+		"axios": "1.19.0",
+		"expo-font": "58.0.11",
+		"@react-native-async-storage/async-storage": "3.1.1",
+		"react-native-screens": "4.30.0"
+	},
+	"patchedDependencies": {
+		"expo-font@58.0.11": "patches/expo-font@58.0.11.patch",
+		"react-native-screens@4.30.0": "patches/react-native-screens@4.30.0.patch"
+	}
+}

@@ -1,0 +1,119 @@
+name: prepare mobile store release
+run-name: Prepare mobile ${{ inputs.bump }} release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which number to bump
+        required: true
+        default: store
+        type: choice
+        options: [store, major]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-mobile-release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    # Store releases start from reviewed commits on the default branch.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.4"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check mobile and its dependencies
+        run: bunx turbo run build typecheck lint fmt:check test --filter=@hccnj/mobile...
+        env:
+          NODE_ENV: test
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+  release-pr:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Install scripts run in this job, so the write token must not sit in the git config.
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.4"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Bump the version
+        id: bump
+        working-directory: apps/mobile
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          bun run version:bump "$BUMP"
+          version=$(bun --no-env-file -e 'console.log(require("./native-version.js").version)')
+          test -n "$version" || { echo "::error::Could not read the new version from native-version.js"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Open the release PR
+        # The token appears only in this step, after dependencies are installed.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+          TEST_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          BRANCH="release/mobile-$VERSION"
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$REMOTE" "$BRANCH" > /dev/null; then
+            echo "::error::Branch $BRANCH already exists. Merge or close its PR and delete the branch, then run this again."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -c core.hooksPath=/dev/null switch -c "$BRANCH"
+          git add apps/mobile/native-version.js
+          git -c core.hooksPath=/dev/null commit -m "mobile: release $VERSION"
+          git -c core.hooksPath=/dev/null push "$REMOTE" "HEAD:refs/heads/$BRANCH"
+          cat > pr-body.md <<EOF
+          Bumps the mobile store version to **$VERSION**.
+
+          Checks passed before the bump: $TEST_RUN_URL
+          GitHub does not start other workflows on a pull request opened by a workflow, so that run is the check for this change.
+
+          After merging:
+          1. iOS: \`bun run prebuild:release\`, then archive in Xcode.
+          2. Android: \`bun run generate--android-native-build\`, then \`bun run android:bundle\`.
+          3. Record the release in \`apps/mobile/ota-release.json\` (docs/ota-updates.md).
+          EOF
+          gh pr create --base main --head "$BRANCH" --title "mobile: release $VERSION" --body-file pr-body.md || {
+            echo "::error::Could not open the PR. Turn on Settings → Actions → General → \"Allow GitHub Actions to create and approve pull requests\", then open a PR from $BRANCH by hand or delete the branch."
+            exit 1
+          }

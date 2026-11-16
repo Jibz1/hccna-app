@@ -1,0 +1,1539 @@
+"""
+Directs the executor to defer this fragment when the `if` argument is true or undefined.
+"""
+directive @defer(
+  """Deferred when true or undefined."""
+  if: Boolean! = true
+
+  """Unique name"""
+  label: String
+) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"""
+Directs the executor to stream plural fields when the `if` argument is true or undefined.
+"""
+directive @stream(
+  """Stream when true or undefined."""
+  if: Boolean! = true
+
+  """Unique name"""
+  label: String
+
+  """Number of items to return immediately"""
+  initialCount: Int = 0
+) on FIELD
+
+enum AttendanceExportFormat {
+  CSV
+  PDF
+}
+
+type AttendancePdfExportResult {
+  dataHash: String
+  exportKey: String
+  format: AttendanceExportFormat
+  generated: Boolean
+  lastGeneratedAt: DateTime
+  url: String
+}
+
+type AttendanceRecord {
+  attendee: [String!]
+  notes: String
+  topic: String
+}
+
+type AttendandedEvent {
+  attendanceRecord: AttendanceRecord
+  attendanceRecordDate: String
+  attendees: [EventAttendee!]
+  attendeesCount: Int
+  ccbEventId: String
+  ccbGroupId: String
+  eventName: String
+}
+
+type Base {
+  copy: String
+  featureImge: String
+}
+
+enum BroadcastingStatus {
+  offline
+  online
+}
+
+type CCBForm {
+  campus_id: Int
+  id: Int
+  status: String
+  title: String
+  url: String
+}
+
+type CCBFormsFetchError {
+  """Error message describing what went wrong"""
+  message: String
+}
+
+type CCBFormsNotFoundError {
+  """Error message when CCB forms cannot be found"""
+  message: String
+}
+
+union CCBFormsResult = CCBFormsFetchError | CCBFormsNotFoundError | CCBFormsSuccess
+
+type CCBFormsSuccess {
+  """Active publicly listed CCB forms"""
+  forms: [CCBForm!]
+}
+
+type Campus {
+  address: String
+  body: String
+
+  """
+  The campus lead's display name, photo, and subtitle for campus locations and details.
+  """
+  campusLead: CampusLead
+  campusName: String
+  castrStreamId: String
+  cityState: String
+
+  """
+  The campus page's rich text as a Tiptap document (paragraphs, headings, nested lists, marks, media), or null when the page has none. Prefer it over body, the EditorJS JSON string installed apps render.
+  """
+  content: JSON
+  description: String!
+  facebook: String
+  giving: String
+  givingPlatforms: [GivingPlatform!]
+  image: String
+  instagram: String
+
+  """Whether this campus matches the preferredCampus argument."""
+  isPreferred: Boolean!
+  leadPastor: [LeadPastor!]
+
+  """
+  Display address, falling back to city and state when the address is blank.
+  """
+  location: String
+  phone: String
+  slug: String!
+  streamLink: String
+}
+
+type CampusLead {
+  image: String
+  name: String
+  subTitle: String
+}
+
+type CampusPreferenceResult {
+  campusPreferenceVersion: Int!
+  preferredCampusSlug: String
+  success: Boolean!
+  syncPending: Boolean!
+}
+
+type CampusSubscriptionSyncResult {
+  failed: Int!
+  processed: Int!
+}
+
+type Campuses {
+  campus: [Campus!]
+  pageBody: String
+}
+
+type CampusesFetchError {
+  message: String
+}
+
+type CampusesNotFoundError {
+  message: String
+}
+
+union CampusesResult = CampusesFetchError | CampusesNotFoundError | CampusesSuccess
+
+type CampusesSuccess {
+  campuses: [Campus!]!
+}
+
+type CastrPlatform {
+  broadcasting_status: String
+  channel_name: String
+
+  """
+  This destination's own description, or null when it uses the stream's shared title and description
+  """
+  description: String
+  enabled: Boolean
+  id: ID
+  name: String
+
+  """
+  True when switching this destination on needs a newly pasted stream key (Instagram issues a new key for every broadcast); a save without one skips it
+  """
+  requiresNewStreamKey: Boolean
+  stream_key: String
+  template: String
+
+  """
+  This destination's own title, or null when it uses the stream's shared title and description
+  """
+  title: String
+}
+
+type CastrStream {
+  broadcasting_status: String
+  castrPlayerUrl: String
+  description: String
+  enabled: Boolean
+  id: ID
+  name: String
+  platforms: [CastrPlatform!]
+  title: String
+}
+
+"""Which CMS sent the change notice: V5 = Strapi 5. Strapi 4 is retired."""
+enum CmsVersion {
+  V4 @deprecated(reason: "Strapi 4 is retired; its notices are ignored.")
+  V5
+}
+
+type Core {
+  events: Base
+  giving: Base
+  hccexpression: Base
+  more: MoreLinksRefType
+  profile: Base
+  sermons: Base
+}
+
+type CreateEmailLinkResult {
+  """Create email link result message"""
+  message: String
+
+  """Create email link result success"""
+  success: Boolean
+}
+
+type CreateSignInOrDeleteAccountCodeResult {
+  """
+  Code expiration timestamp in milliseconds (deprecated, use countDownTimeMs; null when out of GraphQL Int range)
+  """
+  countDownTime: Int @deprecated(reason: "Use countDownTimeMs instead. countDownTime is deprecated.")
+
+  """Code expiration timestamp in milliseconds"""
+  countDownTimeMs: Float
+
+  """Create/Delete account code result message"""
+  message: String
+
+  """Create code result success"""
+  success: Boolean
+}
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
+type Department {
+  """Department ccb id"""
+  ccbId: String
+
+  """Department description"""
+  description: String
+
+  """Department full name"""
+  fullName: String
+
+  """Department id"""
+  id: Int
+
+  """Department image"""
+  image: String
+
+  """Department link"""
+  link: String
+
+  """Department name"""
+  name: String
+
+  """Department slug"""
+  slug: String
+}
+
+type EnsureUserProfileResult {
+  """True when neither store previously contained the profile"""
+  created: Boolean
+
+  """Human-readable status"""
+  message: String
+
+  """True when one store was reconstructed from the other"""
+  repaired: Boolean
+
+  """Machine-readable provisioning outcome"""
+  status: EnsureUserProfileStatus
+
+  """Whether the profile now exists in both stores"""
+  success: Boolean
+}
+
+enum EnsureUserProfileStatus {
+  ENRICHMENT_PENDING
+  IDENTITY_CONFLICT
+  READY
+  RETRYABLE_ERROR
+}
+
+type Error {
+  message: String
+}
+
+type Event {
+  body: String
+
+  """
+  The event page's rich text as a Tiptap document (paragraphs, headings, nested lists, marks, media), or null when the page has none. Prefer it over body, the EditorJS JSON string installed apps render.
+  """
+  content: JSON
+  description: String
+
+  """When the last session ends; null when it has no end time"""
+  endsAt: DateTime
+  eventDate: String
+  eventImageUrl: String
+  eventMonth: String
+  eventSpeakers: [EventSpeaker!]
+  eventTime: String
+  eventTitle: String
+  pageName: String
+  pageTitle: String
+
+  """
+  Each time on every day a recurring event happens, earliest first, from the CMS RecurringTimes. Empty for one-time events and while the CMS MultipleTimes switch is off.
+  """
+  recurringTimes: [EventRecurringTime!]!
+  reoccurring: String
+
+  """Event room"""
+  room: String
+
+  """
+  When the event happens, soonest first: every session of a one-time event, or each time on a recurring event's next day. Events without a schedule have one session from their own dates. eventDate, eventTime and eventMonth describe the first session that has not finished.
+  """
+  sessions: [EventSession!]!
+  slug: String
+
+  """When the first session starts"""
+  startsAt: DateTime
+  zoomLink: String
+}
+
+type EventAttendance {
+  ccbEventId: String
+  ccbGroupId: String
+  eventDescription: String
+  eventName: String
+}
+
+input EventAttendanceExportEventInput {
+  eventId: String!
+}
+
+input EventAttendanceLookupInput {
+  ccbId: String!
+  eventId: String!
+  occurrenceDate: String!
+}
+
+type EventAttendanceLookupResult {
+  attended: Boolean
+  attendeeName: String
+  ccbId: String
+  eventId: String
+  occurrenceDate: String
+}
+
+type EventAttendanceSnapshot {
+  attendees: [EventAttendeeStatus!]
+  attendeesCount: Int
+  ccbGroupId: String
+  eventId: String
+  eventName: String
+  notes: String
+  occurrenceDate: String
+  topic: String
+}
+
+type EventAttendee {
+  attendeeCCBID: String
+  attendeeName: String
+}
+
+type EventAttendeeStatus {
+  attended: Boolean
+  attendeeCCBID: String
+  attendeeName: String
+}
+
+type EventMonthGroup {
+  """Events occurring in this month, soonest first"""
+  events: [Event!]
+
+  """
+  Full month name, e.g. "August"
+  """
+  month: String
+
+  """Calendar year the month belongs to"""
+  year: Int
+}
+
+"""A start time on every day a recurring event happens"""
+type EventRecurringTime {
+  """
+  The editor's name for the time, e.g. "First service"
+  """
+  label: String
+
+  """
+  New York wall-clock time, 24-hour "HH:mm", e.g. "09:00"
+  """
+  startTime: String!
+}
+
+"""
+One time an event happens. Times are instants; the church schedules them in New York time.
+"""
+type EventSession {
+  """Null when the session has no end time"""
+  endsAt: DateTime
+
+  """
+  The event slug and the session start, e.g. sunday-service@2026-10-11T13:00:00.000Z
+  """
+  id: ID!
+
+  """
+  The editor's name for the session, e.g. "Opening night"
+  """
+  label: String
+  startsAt: DateTime!
+}
+
+type EventSpeaker {
+  fullName: String
+  image: String
+}
+
+type ExportAttendanceEvent {
+  attendanceEventCCBID: String
+  attendanceEventName: String
+}
+
+type ExportAttendanceResult {
+  exportAttendanceEvent: [ExportAttendanceEvent!]
+}
+
+type FeaturedEventProminentColors {
+  """Accent prominent color hex value"""
+  accent: String!
+
+  """Dark prominent color hex value"""
+  dark: String!
+
+  """Light prominent color hex value"""
+  light: String!
+}
+
+type FeaturedEvents {
+  """Event description"""
+  description: String
+
+  """Event image URL"""
+  eventImageUrl: String
+
+  """Event title"""
+  eventTitle: String
+
+  """Event page link"""
+  pageLink: String
+
+  """Prominent colors derived from the Featured Event image"""
+  prominentColors: FeaturedEventProminentColors
+
+  """Event slug"""
+  slug: String
+}
+
+type FeaturedEventsFetchError {
+  message: String
+}
+
+type FeaturedEventsList {
+  events: [FeaturedEvents!]
+}
+
+type FeaturedEventsNotFoundError {
+  message: String
+}
+
+union FeaturedEventsResult = FeaturedEventsFetchError | FeaturedEventsNotFoundError | FeaturedEventsSuccess
+
+type FeaturedEventsSuccess {
+  events: [FeaturedEvents!]
+}
+
+type GivingPlatform {
+  icon: String
+  link: String
+  text: String
+  title: String
+}
+
+type Home {
+  featuredEvents: FeaturedEventsList
+  serviceTimes: [ServiceTimes!]
+  upComingEvents: [UpComingEvents!]
+}
+
+type ImportSavedVersesPayload {
+  alreadySaved: Int!
+  imported: Int!
+
+  """Entries with no catalog match, or beyond the saved verse limit"""
+  skipped: Int!
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON @specifiedBy(url: "http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf")
+
+type LeadPastor {
+  body: String
+  image: String
+  leadershipGroup: String
+  name: String
+  slug: String
+  subTitle: String
+}
+
+type LiveStream {
+  """
+  The stream's shared description, or null when unavailable. Legacy metadata may lag edits briefly.
+  """
+  description: String
+
+  """The Castr stream ID"""
+  id: ID!
+  isLive: Boolean!
+
+  """The campus slug this stream belongs to, or null when it has no campus"""
+  slug: String
+
+  """
+  The stream's shared title, or null when unavailable. Legacy metadata may lag edits briefly.
+  """
+  title: String
+}
+
+type LiveStreamStatusFetchError {
+  message: String!
+}
+
+union LiveStreamStatusResult = LiveStreamStatusFetchError | LiveStreamStatusSuccess
+
+type LiveStreamStatusSuccess {
+  streams: [LiveStream!]!
+}
+
+type MonthlyGivingGroup {
+  """List of donations for this month"""
+  givingList: [UserDonation!]
+
+  """Month name (e.g., January)"""
+  month: String
+
+  """Number of donations for this month"""
+  number: Int
+
+  """Total amount for this month"""
+  total: Float
+}
+
+type MoreLinks {
+  group: String
+  iconName: String
+  link: String
+  subTitle: String
+  title: String
+}
+
+type MoreLinksRefType {
+  copy: String
+  featureImge: String
+  links: [MoreLinks!]
+}
+
+type Mutation {
+  """Update CMS data from Strapi Webhook"""
+  cmsWebhookUpdate(
+    """Strapi webhook payload"""
+    input: StrapiWebHookUpdateInput!
+  ): StrapiWebHookUpdateResult
+  createEmailLink(
+    """User email"""
+    email: String!
+  ): CreateEmailLinkResult
+  createEventAttendance(
+    """Event attendance input"""
+    input: UpdateEventAttendanceInput!
+  ): UpdateEventAttendanceResult
+  createSignInCode(
+    """User email"""
+    email: String!
+  ): CreateSignInOrDeleteAccountCodeResult
+
+  """
+  Idempotently provisions and reconciles the caller's user profile from their verified Firebase identity. Safe to call on every sign-in.
+  """
+  ensureUserProfile: EnsureUserProfileResult
+  exportEventAttendancePdf(format: AttendanceExportFormat = PDF, input: [EventAttendanceExportEventInput!]!, occurrenceDate: String!): AttendancePdfExportResult
+  exportEventAttendeesPdf(eventId: String!, format: AttendanceExportFormat = PDF, occurrenceDate: String!): AttendancePdfExportResult
+
+  """
+  Add verses saved on a device to the caller's account. Existing saves are kept, so retries are safe.
+  """
+  importSavedVerses(verses: [SavedVerseImportInput!]!): ImportSavedVersesPayload!
+
+  """
+  Cleans up Firestore user data after Auth account deletion. Called by internal systems after a user account is removed from Firebase Auth.
+  """
+  postDeletionCleanup(
+    """User email"""
+    email: String!
+
+    """User UID"""
+    uid: String!
+  ): UpdateUserProfile
+
+  """
+  Retry a bounded batch of pending campus subscription changes. Called by Cloud Scheduler.
+  """
+  reconcileCampusSubscriptions: CampusSubscriptionSyncResult
+
+  """
+  Replay-safe, idempotent push-token upsert keyed by the FCM token. Repeating the same input for the same authenticated user converges to one registration and the same topic set without duplicate registrations or topic memberships. followPreferredCampus replays reconcile the latest backend preference, which may change between requests.
+  """
+  registerPushToken(
+    """The push token registration input"""
+    input: RegisterPushTokenInput!
+  ): RegisterPushTokenResult
+
+  """Remove a saved scripture from the caller's account"""
+  removeSavedVerse(verseId: ID!): RemoveSavedVersePayload!
+
+  """Request to delete account"""
+  requestDeleteAccount: CreateSignInOrDeleteAccountCodeResult
+
+  """
+  Save a scripture to the caller's account. Saving an already saved verse returns the existing save.
+  """
+  saveVerse(kind: SavedVerseKind!, verseId: ID!): SavedVerse!
+  sendAnnouncement(
+    """The input to send the announcement to"""
+    input: SendAnnouncementInput!
+  ): SendAnnouncementResult
+  sendBroadcast(
+    """The input to send the broadcast to"""
+    input: SendBroadcastInput!
+  ): SendBroadcast
+
+  """
+  Save the caller's campus with optimistic concurrency. A false success returns the newer canonical preference. Firestore profile and subscription synchronization may remain pending after the preference is saved.
+  """
+  setPreferredCampus(campusSlug: String!, expectedVersion: Int!): CampusPreferenceResult
+
+  """Set the daily Bible verse"""
+  setVerseOfTheDay: SetVerseOfTheDayResultV2
+
+  """
+  Retire one device registration using its logout key. May be retried with anonymous Firebase auth after logout. A newer registration is unaffected. Returns false when cleanup could not complete; retry later.
+  """
+  unregisterPushToken(
+    """
+    Previous owner for a registration made before logout keys existed. Ignored for keyed registrations.
+    """
+    legacyUserId: String
+    logoutKey: String!
+    token: String!
+  ): Boolean!
+  updateCastrStream(input: UpdateCastrStreamInput!): PingCastrStreamResponse
+  updateUserProfile(
+    """User profile update data"""
+    input: UpdateUserProfileInput!
+  ): UpdateUserProfile
+
+  """Verify delete account code"""
+  verifyDeleteAccountCode(
+    """Delete account code"""
+    code: String!
+  ): UpdateUserProfile
+  verifySignInCode(
+    """Sign in code"""
+    code: String!
+
+    """User email"""
+    email: String!
+  ): VerifySignInCodeResult
+
+  """
+  Send a push notification for the daily Bible verse with typed error handling
+  """
+  vodPushNotification: VodPushNotificationResult
+
+  """
+  Start assigning this month's Word of Activation and emailing and pushing monthly subscribers
+  """
+  wordOfActivationMonthly: WordOfActivationMonthlyResult
+
+  """
+  Start sending this month's still-pending Word of Activation emails and pushes without assigning verses
+  """
+  wordOfActivationSendPending: WordOfActivationRunStarted
+}
+
+type MyGivingHistoryFetchError {
+  """Error message describing what went wrong"""
+  message: String
+}
+
+type MyGivingHistoryNotFoundError {
+  """Error message when giving data cannot be found"""
+  message: String
+}
+
+union MyGivingHistoryResult = MyGivingHistoryFetchError | MyGivingHistoryNotFoundError | MyGivingHistorySuccess
+
+type MyGivingHistorySuccess {
+  """Previous five years of giving"""
+  years: [UserPreviousFiveYearsDonations!]
+}
+
+type OnUserCreatedResult {
+  """Message"""
+  message: String
+
+  """Success"""
+  success: Boolean
+}
+
+type PageInfo {
+  """Cursor for the last item in this page"""
+  endCursor: String
+
+  """Whether there are more items after this page"""
+  hasNextPage: Boolean
+
+  """Whether there are more items before this page"""
+  hasPreviousPage: Boolean
+
+  """Cursor for the first item in this page"""
+  startCursor: String
+}
+
+type PingCastrStreamQueueError {
+  """Error message when stream mapping update cannot be queued"""
+  message: String
+}
+
+type PingCastrStreamResponse {
+  message: String
+
+  """
+  Destinations this save skipped because they need a newly pasted stream key
+  """
+  skippedPlatformIds: [ID!]
+}
+
+union PingCastrStreamResult = PingCastrStreamQueueError | PingCastrStreamSuccess
+
+type PingCastrStreamSuccess {
+  """Success message"""
+  message: String
+}
+
+type Query {
+  """Get Campuses"""
+  campuses: Campuses
+
+  """
+  Get campuses with preferred-campus ordering, cleaned lead names, and typed success and error responses
+  """
+  campusesV2(
+    """
+    Optional campus slug to place first. Omitted, null, blank, or unknown slugs keep the default campus order.
+    """
+    preferredCampus: String
+  ): CampusesResult
+  castrStream(
+    """The slug of the campus"""
+    campusSlug: String!
+  ): CastrStream
+
+  """Get CCB forms with typed success and error responses"""
+  ccbFormsV2: CCBFormsResult
+  core: Core
+  eventAttendanceByCcb(input: [EventAttendanceLookupInput!]!): [EventAttendanceLookupResult!]
+  eventAttendees(eventId: String!, occurrenceDate: String!): EventAttendanceSnapshot
+  eventWithAttendance(ccbGroupId: String!, eventID: String!): AttendandedEvent
+
+  """
+  Get events from Strapi. If slug is provided, returns a single event. If reoccurring is provided, filters events by reoccurring type.
+  """
+  events(
+    """
+    Campus slug. Defaults to house-of-stars, which also includes events without a campus. Other campuses include only events assigned to that campus.
+    """
+    campusSlug: String
+    reoccurring: Reoccurring
+
+    """Event slug"""
+    slug: String
+  ): [Event!] @deprecated(reason: "Use upcomingEventsByMonth instead, which groups upcoming events by month and returns typed success/error responses. The slug argument for single-event lookup has no replacement yet.")
+  exportAttendance: ExportAttendanceResult
+
+  """
+  Get featured events with optional campus filtering and typed success and error responses
+  """
+  featuredEvents(
+    """
+    Optional campus slug. Returns that campus's featured events, falling back to the home selection when none are stored. Omitted, null, or blank slugs return the home selection.
+    """
+    campusSlug: String
+  ): FeaturedEventsResult
+  getPreviousFiveYearsGivingV2: [UserPreviousFiveYearsDonations!]
+
+  """Get home page"""
+  home: Home
+  kidsEventAttendance: [EventAttendance]
+
+  """
+  Get each stream's live status, title, and description with typed success and error responses
+  """
+  liveStreamStatus(
+    """
+    Optional campus slug. Returns only that campus's streams; an unknown slug returns none. Omitted, null, or blank slugs return every stream.
+    """
+    slug: String
+  ): LiveStreamStatusResult
+
+  """
+  Get the current user's giving history with typed success and error responses
+  """
+  myGivingHistory: MyGivingHistoryResult
+
+  """Ping the castr stream to update the stream mapping"""
+  pingCastrStream: PingCastrStreamResult
+
+  """Get the current authenticated user profile"""
+  profile: UserDBProfile
+  qpd(createdAt: String!, email: String!, firstName: String, img: String, isVerified: Boolean, lastName: String, phone: String, provider: String, uid: String!, userMetadata: JSON): OnUserCreatedResult
+
+  """Get Sermons with Relay Connection Pagination"""
+  sermons(
+    """Cursor to start after"""
+    after: String
+
+    """Cursor to start before"""
+    before: String
+
+    """Number of items to return (max 100)"""
+    first: Int
+
+    """Number of items to return from the end (max 100)"""
+    last: Int
+
+    """Sermons slugs, comma separated"""
+    slugs: String
+  ): SermonConnection
+
+  """
+  Shorts for the feed, hand-picked ones first and unshuffled; clients choose the order. Empty when none are available.
+  """
+  shorts: [Short!]!
+
+  """Thought Of God"""
+  thoughtOfGod: ThoughtOfGodPage
+
+  """
+  Get upcoming events grouped by month with typed success and error responses
+  """
+  upcomingEventsByMonth(
+    """
+    Campus slug. Defaults to house-of-stars, which also includes events without a campus. Other campuses include only events assigned to that campus.
+    """
+    campusSlug: String
+  ): UpcomingEventsByMonthResult
+  user: User!
+
+  """Get the daily Bible verse with typed error handling"""
+  verseOfTheDayV2: VerseOfTheDayResult
+}
+
+input RegisterPushTokenInput {
+  """
+  The complete desired notification-channel set for this token. Omitted channels, channels: null, and channels: [] all select no client channels: the shared announcement topic remains, and every previously registered non-announcement topic is removed. With followPreferredCampus enabled, the server also adds the latest saved campus topic (Union for guests).
+  """
+  channels: [String!]
+
+  """
+  Follow the latest saved campus, or Union for a guest. Campus topics are server-derived in this mode.
+  """
+  followPreferredCampus: Boolean
+
+  """
+  Device-generated secret for this registration. Rotate after logout; retained locally for replay-safe cleanup.
+  """
+  logoutKey: String
+
+  """Device platform, e.g. ios or android"""
+  platform: String
+
+  """The device's FCM registration token"""
+  token: String!
+}
+
+type RegisterPushTokenResult {
+  campusPreferenceVersion: Int
+  campusSlug: String
+
+  """Registration result message"""
+  message: String!
+  retryable: Boolean!
+
+  """Whether the token was registered"""
+  success: Boolean!
+
+  """The FCM topics the device is now subscribed to"""
+  topics: [String!]!
+}
+
+type RemoveSavedVersePayload {
+  """False when the verse was not saved"""
+  removed: Boolean!
+  verseId: ID!
+}
+
+enum Reoccurring {
+  BI_WEEKLY
+  DAILY
+  MONTHLY
+  ONE_TIME_EVENT
+  TWICE_A_MONTH
+  WEEKLY
+}
+
+"""Scripture the signed-in user saved to their account"""
+type SavedVerse {
+  book: String!
+  image: String
+  kind: SavedVerseKind!
+  savedAt: DateTime!
+
+  """NLT text"""
+  text: String!
+
+  """Scripture catalog key (the wordActivationScriptures document ID)"""
+  verseId: ID!
+}
+
+"""A verse saved on a device before saves were stored on the account"""
+input SavedVerseImportInput {
+  book: String!
+  kind: SavedVerseKind!
+  savedAt: DateTime
+  text: String!
+}
+
+"""Where a saved verse was first saved from"""
+enum SavedVerseKind {
+  VERSE_OF_THE_DAY
+  WORD_OF_ACTIVATION
+}
+
+type Scripture {
+  """The book name of the Bible verse"""
+  book: String
+
+  """The date for this verse"""
+  date: String
+
+  """Optional image associated with the verse"""
+  image: String
+
+  """Short book name or reference"""
+  stBook: String
+
+  """The actual verse text"""
+  text: String
+
+  """Unique identifier for the verse"""
+  verseId: String
+}
+
+input SendAnnouncementInput {
+  """
+  The channel (FCM topic) to publish to; defaults to the shared announcement topic
+  """
+  channel: String
+
+  """The image to send the announcement to"""
+  image: String
+
+  """The message to send the announcement to"""
+  message: String!
+
+  """The subtitle to send the announcement to"""
+  subtitle: String!
+
+  """The title to send the announcement to"""
+  title: String!
+}
+
+type SendAnnouncementResult {
+  """Send announcement result message"""
+  message: String
+
+  """Send announcement result success"""
+  success: Boolean
+}
+
+type SendBroadcast {
+  """Update result message"""
+  message: String
+
+  """Update result success"""
+  success: Boolean
+}
+
+input SendBroadcastInput {
+  """The channels to send the broadcast to"""
+  channels: [String!]
+
+  """
+  Deprecated: accepted for backward compatibility but no longer stored. Use registerPushToken for new clients.
+  """
+  expoToken: String!
+
+  """The token to send the broadcast to"""
+  token: String!
+
+  """
+  Deprecated: accepted for backward compatibility but ignored; token ownership derives from the authenticated caller.
+  """
+  userId: String
+}
+
+type Sermon {
+  """Sermon date"""
+  date: String
+
+  """Sermon ID"""
+  id: ID
+
+  """Sermon page name"""
+  pageName: String
+
+  """Sermon slug"""
+  slug: String
+
+  """Sermon speaker full name"""
+  speakerFullName: String
+
+  """Sermon speaker image"""
+  speakerImage: String
+
+  """Sermon thumbnail"""
+  thumbnail: String
+
+  """Sermon title"""
+  title: String
+
+  """Sermon youtube link"""
+  youtubeLink: String
+}
+
+type SermonConnection {
+  edges: [SermonEdge!]
+  metadata: SermonConnectionMetadata
+  pageInfo: PageInfo
+}
+
+type SermonConnectionMetadata {
+  """Body content for the sermons page"""
+  body: String
+
+  """Featured image for the sermons page"""
+  featuredImg: String
+}
+
+type SermonEdge {
+  """Cursor for pagination"""
+  cursor: String
+  node: Sermon
+}
+
+type ServiceTimes {
+  """Event body"""
+  body: String @deprecated(reason: "Use from events api instead")
+
+  """Event description"""
+  description: String
+
+  """Event end date"""
+  endDate: String
+
+  """Event date"""
+  eventDate: String
+
+  """Event title"""
+  eventTitle: String
+
+  """Event reoccurring"""
+  reoccurring: String
+
+  """Event room"""
+  room: String
+
+  """Event slug"""
+  slug: String
+
+  """Event zoom link"""
+  zoomLink: String
+}
+
+union SetVerseOfTheDayResultV2 = VodSetError | VodSuccess
+
+"""A YouTube Short for the app's shorts feed"""
+type Short {
+  """Name of the YouTube channel that posted the short"""
+  channelTitle: String!
+
+  """True for a hand-picked short; clients play these first"""
+  curated: Boolean!
+
+  """Short ID"""
+  id: ID!
+
+  """YouTube thumbnail URL"""
+  thumbnail: String
+  title: String!
+
+  """YouTube video id"""
+  videoId: String!
+}
+
+input StrapiWebHookUpdateInput {
+  """
+  V5 for Strapi 5 notices, which must carry the x-cms-webhook-secret header. Notices without cmsVersion V5 come from the retired Strapi 4 and are ignored.
+  """
+  cmsVersion: CmsVersion
+  createdAt: String!
+  event: String!
+  model: String!
+  slug: String
+  uid: String!
+}
+
+type StrapiWebHookUpdateResult {
+  message: String
+  success: Boolean
+}
+
+type ThoughtOfBlog {
+  date: String!
+  description: String!
+  link: String!
+  thumbnail: String
+  title: String!
+}
+
+type ThoughtOfGodPage {
+  blogs: [ThoughtOfBlog!]
+  description: String!
+  thumbnail: String
+  title: String!
+  youtube: [ThoughtOfGodYoutube!]
+}
+
+type ThoughtOfGodYoutube {
+  body: String!
+  thumbnail: String
+  title: String!
+  youtubeLink: String!
+}
+
+"""
+A field whose value conforms to the standard URL format as specified in RFC3986: https://www.ietf.org/rfc/rfc3986.txt.
+"""
+scalar URL
+
+type UpComingEvents {
+  """Event description"""
+  description: String
+
+  """Event date"""
+  eventDate: String
+
+  """Event month"""
+  eventMonth: String
+
+  """Event time"""
+  eventTime: String
+
+  """Event title"""
+  eventTitle: String
+
+  """Event image"""
+  image: String
+
+  """Event reoccurring"""
+  reoccurring: String
+
+  """Event slug"""
+  slug: String
+}
+
+type UpcomingEventsByMonthFetchError {
+  """Error message describing what went wrong"""
+  message: String
+}
+
+union UpcomingEventsByMonthResult = UpcomingEventsByMonthFetchError | UpcomingEventsByMonthSuccess
+
+type UpcomingEventsByMonthSuccess {
+  """Upcoming events grouped by month in chronological order"""
+  months: [EventMonthGroup!]
+}
+
+input UpdateCastrStreamInput {
+  campusSlug: String!
+  description: String!
+  platforms: [UpdateCastrStreamPlatform!]!
+  streamId: String!
+  title: String!
+}
+
+input UpdateCastrStreamPlatform {
+  broadcasting_status: BroadcastingStatus!
+
+  """
+  This destination's own description. Set with title; null clears both; omit to keep the saved values
+  """
+  description: String
+  id: String!
+
+  """The key of the platform"""
+  key: String
+
+  """
+  This destination's own title. Set with description; null clears both; omit to keep the saved values
+  """
+  title: String
+}
+
+input UpdateEventAttendanceInput {
+  """List of attendees IDs"""
+  attendeesIds: [String!]!
+
+  """Event ID"""
+  eventId: String!
+
+  """Notes"""
+  notes: String!
+
+  """Topic"""
+  topic: String!
+}
+
+type UpdateEventAttendanceResult {
+  """Update result message"""
+  message: String
+
+  """Update result success"""
+  success: Boolean
+}
+
+type UpdateUserProfile {
+  """Update result message"""
+  message: String
+
+  """Update result success"""
+  success: Boolean
+}
+
+input UpdateUserProfileInput {
+  """User first name"""
+  firstName: String
+
+  """User image"""
+  img: String
+
+  """User last name"""
+  lastName: String
+
+  """User phone"""
+  phone: String
+}
+
+type User {
+  donations: UserDonations @deprecated(reason: "use getPreviousFiveYearsGiving query field instead")
+  eventAttendance: [EventAttendance] @deprecated(reason: "use kidsEventAttendance query field")
+
+  """Get the previous five years of giving for the user"""
+  getPreviousFiveYearsGiving: [UserPreviousFiveYearsDonations!]
+  profile: UserProfile
+
+  """Scripture the user saved, newest first"""
+  savedVerses: [SavedVerse!]!
+  woa: WordOfActivation
+}
+
+"""User profile from database"""
+type UserDBProfile {
+  campusPreferenceVersion: Int!
+  ccbFamilyId: String
+  ccbId: String
+  createdAt: DateTime
+  email: String
+  firstName: String
+
+  """Previous five years of giving"""
+  givingHistory: [UserPreviousFiveYearsDonations!]
+  id: String
+  img: String
+  isVerified: Boolean
+  lastName: String
+  phone: String
+  preferredCampusSlug: String
+  provider: String
+  updatedAt: DateTime
+
+  """Word of Activation for the current month"""
+  woa: WordOfActivation
+}
+
+type UserDonation {
+  """User amount"""
+  amount: Float
+
+  """User campus"""
+  campus: String
+
+  """User campus id"""
+  campusId: String
+
+  """User date"""
+  date: String
+
+  """User name"""
+  name: String
+
+  """User payment type"""
+  paymentType: String
+
+  """User tax deductible"""
+  taxDeductible: Boolean
+
+  """User transaction id"""
+  transactionId: String
+}
+
+type UserDonations {
+  """User ccb id"""
+  ccbId: String
+  giving: [UserDonation!]
+
+  """User number of giving"""
+  numberOfGiving: Int
+
+  """User total"""
+  total: Float
+}
+
+type UserPreviousFiveYearsDonations {
+  """User ccb id"""
+  ccbId: String
+  giving: [UserDonation!]
+
+  """Giving grouped by month"""
+  groupGivingByMonth: [MonthlyGivingGroup!]
+
+  """User number of giving"""
+  numberOfGiving: Int
+
+  """User total"""
+  total: Float
+
+  """User year"""
+  year: Int
+}
+
+type UserProfile {
+  campusPreferenceVersion: Int!
+
+  """User ccb family id"""
+  ccbFamilyId: String
+
+  """User ccb id"""
+  ccbId: String
+
+  """User created at"""
+  createdAt: String
+
+  """Sermons List"""
+  departments: [Department!]
+
+  """User email"""
+  email: String
+
+  """Whether signup directory enrichment is still pending for this profile"""
+  enrichmentPending: Boolean!
+
+  """User first name"""
+  firstName: String
+
+  """User image"""
+  img: String
+
+  """User is verified"""
+  isVerified: Boolean
+
+  """User last name"""
+  lastName: String
+
+  """User phone"""
+  phone: String
+  preferredCampusSlug: String
+
+  """User provider"""
+  provider: String
+
+  """User uid"""
+  uid: String
+}
+
+type VerifySignInCodeResult {
+  """Verify sign in code result message"""
+  message: String
+
+  """Verify sign in code result success"""
+  success: Boolean
+
+  """Verify sign in code result token"""
+  token: String
+}
+
+union VerseOfTheDayResult = Scripture | VodFetchError | VodNotFoundError
+
+type VodFetchError {
+  """Error message describing what went wrong"""
+  message: String
+}
+
+type VodNotFoundError {
+  """Error message when verse is not found"""
+  message: String
+}
+
+type VodPushNotificationError {
+  """Error message when push notification fails"""
+  message: String
+}
+
+union VodPushNotificationResult = VodFetchError | VodNotFoundError | VodPushNotificationError | VodSuccess
+
+type VodSetError {
+  """Error message when setting verse fails"""
+  message: String
+}
+
+type VodSuccess {
+  """Success message"""
+  message: String
+}
+
+"""Word of Activation for the current month"""
+type WordOfActivation {
+  """The book name of the Bible verse"""
+  book: String
+
+  """The email of the user"""
+  email: String
+
+  """Optional image associated with the verse"""
+  image: String
+
+  """The month for this verse"""
+  month: String
+
+  """The monthly subscription status"""
+  monthlySub: Boolean
+
+  """The name of the user"""
+  name: String
+
+  """Short book name or reference"""
+  stBook: String
+
+  """The actual verse text"""
+  text: String
+
+  """Unique identifier for the verse"""
+  verseId: String
+}
+
+union WordOfActivationMonthlyResult = WordOfActivationMonthlySuccess | WordOfActivationRotationError | WordOfActivationRunStarted
+
+"""No longer returned; runs now report WordOfActivationRunStarted."""
+type WordOfActivationMonthlySuccess {
+  """Subscriptions assigned a new verse this run"""
+  assigned: Int
+
+  """Monthly emails sent this run"""
+  emailed: Int
+
+  """Subscriptions that failed to process; see logs"""
+  failed: Int
+
+  """Success message"""
+  message: String
+
+  """Subscribers with at least one device accepting a monthly push this run"""
+  notified: Int
+
+  """Subscriptions already rotated this month"""
+  skipped: Int
+}
+
+"""No longer returned; run failures are reported to Sentry."""
+type WordOfActivationRotationError {
+  """Error message when the monthly rotation fails"""
+  message: String
+}
+
+"""
+A Word of Activation delivery run started in the background. Outcomes go to logs and Sentry.
+"""
+type WordOfActivationRunStarted {
+  """Which run started"""
+  message: String
+}

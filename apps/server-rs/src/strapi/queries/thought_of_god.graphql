@@ -1,0 +1,7 @@
+query StrapiV2ThoughtOfGod {
+  tog {
+    Heading { title description featureImage { url } }
+    TOGBlogs(pagination: { pageSize: 100 }) { Title Description BlogLink Thumbnail { url } }
+    Youtube(pagination: { pageSize: 100 }) { YoutubeLink VideoName description Thumbname { url } }
+  }
+}

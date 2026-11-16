@@ -1,0 +1,72 @@
+[package]
+name = "hccna-server-rs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93"
+publish = false
+description = "Experimental Rust implementation of the HCCNA GraphQL backend, built to benchmark against apps/server."
+
+[dependencies]
+anyhow = "1.0.104"
+async-graphql = { version = "7.2", default-features = false }
+axum = "0.8"
+base64 = "0.23"
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+chrono-tz = { version = "0.10.4", default-features = false, features = ["std"] }
+gcp_auth = "0.12"
+hex = "0.4"
+htmlize = { version = "1.1", features = ["entities"] }
+http = "1"
+httpdate = "1"
+jsonwebtoken = { version = "11", features = ["rust_crypto"] }
+mimalloc = "0.1.52"
+moka = { version = "0.12.16", features = ["future", "sync"] }
+prometheus = { version = "0.14", features = ["process"] }
+quick-xml = { version = "0.42", features = ["serialize"] }
+regex = "1.13"
+redis = { version = "1", features = ["tokio-comp", "connection-manager"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "gzip", "http2"] }
+# Error reporting. 0.46.x is the newest line on reqwest 0.12. 0.47+ needs reqwest 0.13, which
+# waits on statsig-rust: 0.23.2 still pulls reqwest 0.12, so two HTTP clients would be built.
+# `rustls` selects reqwest's `rustls-tls` (ring, web PKI roots), the stack the crate already
+# builds; reqwest 0.13's `rustls` switches to aws-lc-rs and platform roots.
+sentry = { version = "=0.46.2", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["float_roundtrip", "preserve_order", "raw_value"] }
+sha2 = "0.10"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "tls-rustls-ring-webpki"] }
+# The evaluator the TS server runs: @statsig/statsig-node-core 0.23.2 is this crate behind N-API.
+statsig-rust = "=0.23.2"
+thiserror = "2.0.21"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "time", "sync"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["compression-gzip", "compression-deflate", "cors", "request-id", "timeout", "util"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
+url = "2.5.8"
+uuid = { version = "1.28.0", features = ["v4"] }
+
+[dev-dependencies]
+# Matches `async-graphql` exactly; the differential nesting test names the parser's own value type.
+async-graphql-value = "=7.2.1"
+# Gzip bodies for the gateway's pass-through tests.
+flate2 = "1.1"
+http-body-util = "0.1.5"
+rand = "0.8"
+rsa = "0.9"
+# `sentry::test::with_captured_events`, to assert what would be reported.
+sentry = { version = "=0.46.2", default-features = false, features = ["test"] }
+tokio = { version = "1", features = ["test-util"] }
+wiremock = "0.6"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+# The Firebase tests generate RSA keys at run time (no key material is committed); unoptimised
+# bignum arithmetic would make that take seconds.
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+
+[profile.dev.package.rsa]
+opt-level = 3

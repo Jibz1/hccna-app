@@ -1,0 +1,35 @@
+diff --git a/expo/ios/ExpoAdapterGoogleSignIn.podspec b/expo/ios/ExpoAdapterGoogleSignIn.podspec
+index 2d04cb75b99423d8c176b6745a2a7b68579d076f..d867fb49ec41c70221ecb60c56f064b68bbc8629 100644
+--- a/expo/ios/ExpoAdapterGoogleSignIn.podspec
++++ b/expo/ios/ExpoAdapterGoogleSignIn.podspec
+@@ -2,6 +2,21 @@ require 'json'
+ 
+ package = JSON.parse(File.read(File.join(__dir__, '..', '..', 'package.json')))
+ 
++ios_deployment_target = '16.4'
++
++begin
++  expo_modules_core_dir = File.dirname(
++    `node --print "require.resolve('expo-modules-core/package.json', { paths: ['#{__dir__}'] })"`.strip
++  )
++  podspec_text = File.read(File.join(expo_modules_core_dir, 'ExpoModulesCore.podspec'))
++  ios_target = podspec_text[/:ios\s*(?:=>|,)\s*['"]([\d.]+)['"]/, 1]
++  raise 'no iOS platform found in ExpoModulesCore.podspec' unless ios_target
++  ios_deployment_target = ios_target
++rescue => e
++  message = "ExpoAdapterGoogleSignIn: could not read iOS deployment target from ExpoModulesCore (#{e}); using #{ios_deployment_target}"
++  defined?(Pod::UI) ? Pod::UI.warn(message) : warn(message)
++end
++
+ Pod::Spec.new do |s|
+   s.name           = 'ExpoAdapterGoogleSignIn'
+   s.version        = package['version']
+@@ -10,7 +25,7 @@ Pod::Spec.new do |s|
+   s.license        = package['license']
+   s.author         = package['author']
+   s.homepage       = package['homepage']
+-  s.platform       = :ios, '13.4'
++  s.platform       = :ios, ios_deployment_target
+   s.swift_version  = '5.4'
+   s.source         = { :git => 'https://github.com/react-native-google-signin/google-signin.git', :tag => "v#{package['version']}" }
+   s.static_framework = true

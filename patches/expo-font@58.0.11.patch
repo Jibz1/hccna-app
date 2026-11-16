@@ -1,0 +1,81 @@
+diff --git a/ios/FontLoaderModule.swift b/ios/FontLoaderModule.swift
+index 1fa919d320d65f67ac5579efc6794049733b2d1d..9a78c15a15982677f3c851a7fe2bd93e26f6f6cd 100644
+--- a/ios/FontLoaderModule.swift
++++ b/ios/FontLoaderModule.swift
+@@ -2,8 +2,7 @@ import CoreGraphics
+ import ExpoModulesCore
+ 
+ public final class FontLoaderModule: Module {
+-  // could be a Set, but to be able to pass to JS we keep it as an array
+-  private lazy var registeredFonts: [String] = queryCustomNativeFonts()
++  private let fontRegistry = FontRegistry(queryFonts: queryCustomNativeFonts)
+ 
+   public func definition() -> ModuleDefinition {
+     Name("ExpoFontLoader")
+@@ -12,7 +11,7 @@ public final class FontLoaderModule: Module {
+     // and potentially consumed outside of Expo (e.g. RN vector icons)
+     // do NOT change the property as it'll break consumers!
+     Function("getLoadedFonts") {
+-      return registeredFonts
++      return fontRegistry.getLoadedFonts()
+     }
+ 
+     // NOTE: this is exposed in JS as globalThis.expo.modules.ExpoFontLoader.loadAsync
+@@ -53,7 +52,7 @@ public final class FontLoaderModule: Module {
+       // what `loadAsync` skips on, so every entry takes a name the app can no longer load under.
+       // The names read out of the file stay in the alias registry above, where `fontWeight`
+       // resolution needs them.
+-      registeredFonts = Array(Set(registeredFonts).union([fontFamilyAlias]))
++      fontRegistry.register([fontFamilyAlias])
+     }
+ 
+     AsyncFunction("loadFontFamilyAsync") { (fontFamilyAlias: String, faces: [FontFaceRecord]) in
+@@ -126,7 +125,7 @@ public final class FontLoaderModule: Module {
+       }
+     }
+ 
+-    registeredFonts = Array(Set(registeredFonts).union([fontFamilyAlias]))
++    fontRegistry.register([fontFamilyAlias])
+   }
+ }
+ 
+diff --git a/ios/FontRegistry.swift b/ios/FontRegistry.swift
+new file mode 100644
+index 0000000000000000000000000000000000000000..2081087fbee341f4de505f521607aff2d5d2ed60
+--- /dev/null
++++ b/ios/FontRegistry.swift
+@@ -0,0 +1,34 @@
++import Foundation
++
++// Sync JS reads and async font loads run on different queues. Protect the
++// array and its deferred initialization with the same lock.
++internal final class FontRegistry: @unchecked Sendable {
++  private let lock = NSLock()
++  private let queryFonts: () -> [String]
++  private var fonts: [String]?
++
++  init(queryFonts: @escaping () -> [String]) {
++    self.queryFonts = queryFonts
++  }
++
++  func getLoadedFonts() -> [String] {
++    lock.lock()
++    defer { lock.unlock() }
++    return loadFontsWhileLocked()
++  }
++
++  func register(_ names: [String]) {
++    lock.lock()
++    defer { lock.unlock() }
++    fonts = Array(Set(loadFontsWhileLocked()).union(names))
++  }
++
++  private func loadFontsWhileLocked() -> [String] {
++    if let fonts {
++      return fonts
++    }
++    let loaded = queryFonts()
++    fonts = loaded
++    return loaded
++  }
++}

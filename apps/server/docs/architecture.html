@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>HCCNA Backend — Architecture Map</title>
+		<style>
+			:root {
+				--bg: #0f1115;
+				--bg-2: #161a22;
+				--bg-3: #1e242f;
+				--fg: #e6e8ec;
+				--fg-2: #9aa3b2;
+				--accent: #7aa2f7;
+				--accent-2: #bb9af7;
+				--ok: #9ece6a;
+				--warn: #e0af68;
+				--danger: #f7768e;
+				--border: #2a3140;
+				--shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 8px 24px rgba(0, 0, 0, 0.3);
+				--mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				background: var(--bg);
+				color: var(--fg);
+				font:
+					14px/1.5 -apple-system,
+					BlinkMacSystemFont,
+					"Segoe UI",
+					Roboto,
+					sans-serif;
+			}
+			a {
+				color: var(--accent);
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			header {
+				padding: 24px 32px;
+				border-bottom: 1px solid var(--border);
+				background: linear-gradient(180deg, #131722 0%, #0f1115 100%);
+				position: sticky;
+				top: 0;
+				z-index: 10;
+			}
+			header h1 {
+				margin: 0 0 4px;
+				font-size: 18px;
+				letter-spacing: 0.2px;
+			}
+			header .meta {
+				color: var(--fg-2);
+				font-size: 12px;
+			}
+			header .meta code {
+				font-family: var(--mono);
+				color: var(--accent-2);
+			}
+			main {
+				max-width: 1400px;
+				margin: 0 auto;
+				padding: 24px 32px 80px;
+			}
+			h2 {
+				margin: 40px 0 12px;
+				font-size: 14px;
+				text-transform: uppercase;
+				letter-spacing: 1px;
+				color: var(--fg-2);
+				font-weight: 600;
+			}
+			h2:first-of-type {
+				margin-top: 24px;
+			}
+			.layered {
+				display: grid;
+				gap: 16px;
+			}
+			.layer {
+				background: var(--bg-2);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 16px;
+				box-shadow: var(--shadow);
+			}
+			.layer h3 {
+				margin: 0 0 10px;
+				font-size: 12px;
+				text-transform: uppercase;
+				letter-spacing: 1.5px;
+				color: var(--accent);
+				font-weight: 700;
+			}
+			.layer .sub {
+				color: var(--fg-2);
+				font-size: 12px;
+				margin-bottom: 12px;
+			}
+			.cards {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+				gap: 8px;
+			}
+			.card {
+				background: var(--bg-3);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 10px 12px;
+				transition:
+					border-color 0.12s ease,
+					transform 0.12s ease;
+			}
+			.card:hover {
+				border-color: var(--accent);
+				transform: translateY(-1px);
+			}
+			.card .name {
+				font-weight: 600;
+				font-size: 13px;
+			}
+			.card .role {
+				color: var(--fg-2);
+				font-size: 11.5px;
+				margin-top: 3px;
+				line-height: 1.4;
+			}
+			.card .file {
+				font-family: var(--mono);
+				font-size: 10.5px;
+				color: var(--accent-2);
+				margin-top: 5px;
+				word-break: break-all;
+			}
+			.tag {
+				display: inline-block;
+				font-size: 10px;
+				padding: 1px 6px;
+				border-radius: 4px;
+				background: rgba(122, 162, 247, 0.12);
+				color: var(--accent);
+				margin-right: 4px;
+				font-family: var(--mono);
+			}
+			.flow {
+				display: grid;
+				grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+				align-items: center;
+				gap: 8px;
+				padding: 16px;
+				background: var(--bg-2);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+			}
+			.flow .node {
+				text-align: center;
+				padding: 12px;
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				background: var(--bg-3);
+				font-size: 12px;
+			}
+			.flow .arrow {
+				color: var(--fg-2);
+				font-size: 18px;
+				text-align: center;
+			}
+			.cols-2 {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 16px;
+			}
+			.cols-3 {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 16px;
+			}
+			@media (max-width: 900px) {
+				.cols-2,
+				.cols-3 {
+					grid-template-columns: 1fr;
+				}
+				.flow {
+					grid-template-columns: 1fr;
+				}
+				.flow .arrow {
+					transform: rotate(90deg);
+				}
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 12.5px;
+			}
+			th,
+			td {
+				text-align: left;
+				padding: 8px 10px;
+				border-bottom: 1px solid var(--border);
+				vertical-align: top;
+			}
+			th {
+				color: var(--fg-2);
+				font-weight: 600;
+				font-size: 11px;
+				text-transform: uppercase;
+				letter-spacing: 0.8px;
+			}
+			td code,
+			.mono {
+				font-family: var(--mono);
+				font-size: 11.5px;
+				color: var(--accent-2);
+			}
+			.pill {
+				display: inline-block;
+				padding: 2px 8px;
+				border-radius: 999px;
+				background: rgba(122, 162, 247, 0.12);
+				color: var(--accent);
+				font-size: 10.5px;
+				font-family: var(--mono);
+			}
+			.legend {
+				display: flex;
+				gap: 14px;
+				flex-wrap: wrap;
+				font-size: 11.5px;
+				color: var(--fg-2);
+				margin-bottom: 8px;
+			}
+			.legend span::before {
+				content: "";
+				display: inline-block;
+				width: 10px;
+				height: 10px;
+				border-radius: 2px;
+				margin-right: 6px;
+				vertical-align: middle;
+			}
+			.legend .l-infra::before {
+				background: var(--accent);
+			}
+			.legend .l-integration::before {
+				background: var(--warn);
+			}
+			.legend .l-domain::before {
+				background: var(--accent-2);
+			}
+			.card.cat-infra {
+				border-left: 3px solid var(--accent);
+			}
+			.card.cat-integration {
+				border-left: 3px solid var(--warn);
+			}
+			.card.cat-domain {
+				border-left: 3px solid var(--accent-2);
+			}
+			.card.exemplar {
+				box-shadow: 0 0 0 1px var(--ok) inset;
+			}
+			.controls {
+				display: flex;
+				gap: 8px;
+				align-items: center;
+				margin-bottom: 8px;
+			}
+			input[type="search"] {
+				flex: 1;
+				max-width: 360px;
+				background: var(--bg-3);
+				color: var(--fg);
+				border: 1px solid var(--border);
+				border-radius: 6px;
+				padding: 6px 10px;
+				font: inherit;
+			}
+			input[type="search"]:focus {
+				outline: 1px solid var(--accent);
+			}
+			.muted {
+				color: var(--fg-2);
+			}
+			details {
+				background: var(--bg-2);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 8px 12px;
+				margin-top: 8px;
+			}
+			details summary {
+				cursor: pointer;
+				font-weight: 600;
+				font-size: 12.5px;
+			}
+			details[open] summary {
+				margin-bottom: 8px;
+			}
+			.list {
+				columns: 2;
+				column-gap: 24px;
+				font-size: 12.5px;
+				padding-left: 18px;
+			}
+			@media (max-width: 700px) {
+				.list {
+					columns: 1;
+				}
+			}
+			.list li {
+				break-inside: avoid;
+				margin-bottom: 4px;
+			}
+			footer {
+				color: var(--fg-2);
+				font-size: 11.5px;
+				text-align: center;
+				padding: 24px;
+				border-top: 1px solid var(--border);
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<h1 id="title">HCCNA Backend — Architecture Map</h1>
+			<div class="meta">
+				<span id="desc"></span>
+				&nbsp;·&nbsp; runtime <code id="rt-engine"></code> &nbsp;·&nbsp; entry
+				<code id="rt-entry"></code> &nbsp;·&nbsp; generated
+				<code id="rt-gen"></code>
+			</div>
+		</header>
+
+		<main>
+			<h2>Request Flow</h2>
+			<div class="flow">
+				<div class="node">Mobile / Web<br /><span class="muted">client</span></div>
+				<div class="arrow">→</div>
+				<div class="node">Hono App<br /><span class="mono" id="flow-hono"></span></div>
+				<div class="arrow">→</div>
+				<div class="node">
+					Boundary Adapter<br /><span class="muted">runHonoEffect / ctx.effect</span>
+				</div>
+				<div class="arrow">→</div>
+				<div class="node">
+					ManagedRuntime<br /><span class="muted">Effect Services → Integrations</span>
+				</div>
+			</div>
+
+			<h2>Transport Layer</h2>
+			<div class="cols-3">
+				<div class="layer">
+					<h3>HTTP Endpoints</h3>
+					<table id="t-endpoints"></table>
+				</div>
+				<div class="layer">
+					<h3>GraphQL</h3>
+					<div class="sub" id="gql-summary"></div>
+					<details>
+						<summary>Schema modules (<span id="gql-mod-count"></span>)</summary>
+						<ul class="list" id="gql-modules"></ul>
+					</details>
+					<details>
+						<summary>Pothos plugins</summary>
+						<ul class="list" id="gql-plugins"></ul>
+					</details>
+					<details>
+						<summary>Yoga plugins</summary>
+						<ul class="list" id="gql-yoga"></ul>
+					</details>
+				</div>
+				<div class="layer">
+					<h3>REST v1</h3>
+					<table id="t-rest"></table>
+					<div class="sub" style="margin-top: 10px">
+						<span class="mono">@hono/zod-openapi</span> — OpenAPI 3.0 generated from
+						<span class="mono">createRoute</span> definitions.
+					</div>
+				</div>
+			</div>
+
+			<h2>Effect Runtime — Layer Tiers</h2>
+			<div class="legend">
+				<span class="l-infra">infra</span>
+				<span class="l-integration">integration</span>
+				<span class="l-domain">domain</span>
+				<span>★ exemplar capability</span>
+			</div>
+			<div class="layered" id="layer-tiers"></div>
+
+			<h2>All Effect Services</h2>
+			<div class="controls">
+				<input type="search" id="svc-filter" placeholder="filter services…" />
+				<span class="muted" id="svc-count"></span>
+			</div>
+			<div class="cards" id="services-grid"></div>
+
+			<h2>Database (Postgres + Drizzle)</h2>
+			<div class="cols-2">
+				<div class="layer">
+					<h3>Schema Domains</h3>
+					<div id="db-domains"></div>
+				</div>
+				<div class="layer">
+					<h3>Configuration</h3>
+					<table>
+						<tr>
+							<th>Engine</th>
+							<td id="db-engine"></td>
+						</tr>
+						<tr>
+							<th>ORM</th>
+							<td id="db-orm"></td>
+						</tr>
+						<tr>
+							<th>Schema entry</th>
+							<td><code id="db-entry"></code></td>
+						</tr>
+						<tr>
+							<th>Relations</th>
+							<td><code id="db-rel"></code></td>
+						</tr>
+						<tr>
+							<th>Migrations</th>
+							<td><code id="db-mig"></code></td>
+						</tr>
+						<tr>
+							<th>Drizzle config</th>
+							<td><code id="db-cfg"></code></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+
+			<h2>Integrations &amp; Plugin Manifests</h2>
+			<div class="layer">
+				<div class="sub" id="int-model"></div>
+				<table id="t-plugins"></table>
+				<div class="sub" style="margin-top: 12px">
+					Registry: <span class="mono" id="int-registry"></span> &nbsp;·&nbsp; Manifests:
+					<span class="mono" id="int-manifest"></span> &nbsp;·&nbsp; Contracts:
+					<span class="mono" id="int-contracts"></span>
+				</div>
+			</div>
+
+			<h2>Workspace Packages</h2>
+			<div class="cards" id="packages-grid"></div>
+
+			<h2>Observability</h2>
+			<div class="cols-2">
+				<div class="layer">
+					<h3>Stack</h3>
+					<table id="t-obs"></table>
+				</div>
+				<div class="layer">
+					<h3>Guardrails</h3>
+					<ul id="obs-guards" class="list"></ul>
+				</div>
+			</div>
+
+			<h2>Domain Language</h2>
+			<div class="layer">
+				<div class="sub">
+					Canonical vocabulary from <span class="mono" id="dom-src"></span>. Capability reshape
+					priority: <span id="dom-prio"></span>.
+				</div>
+				<ul class="list" id="dom-entities"></ul>
+			</div>
+
+			<h2>Migration State</h2>
+			<div class="layer">
+				<table>
+					<tr>
+						<th>Direction</th>
+						<td id="mig-dir"></td>
+					</tr>
+					<tr>
+						<th>Exemplar</th>
+						<td><code id="mig-exemplar"></code></td>
+					</tr>
+					<tr>
+						<th>Guardrail</th>
+						<td><code id="mig-guard"></code></td>
+					</tr>
+					<tr>
+						<th>ADRs</th>
+						<td id="mig-adrs"></td>
+					</tr>
+				</table>
+			</div>
+
+			<h2>Scripts</h2>
+			<div class="layer">
+				<table id="t-scripts"></table>
+			</div>
+
+			<h2>Deployment</h2>
+			<div class="layer">
+				<table id="t-deploy"></table>
+			</div>
+
+			<details>
+				<summary>Raw architecture.json</summary>
+				<pre
+					class="mono"
+					id="raw-json"
+					style="
+						max-height: 400px;
+						overflow: auto;
+						background: var(--bg);
+						padding: 12px;
+						border-radius: 6px;
+					"
+				></pre>
+			</details>
+		</main>
+
+		<footer>
+			Generated from <code>docs/architecture.json</code>. To refresh, re-run the architecture
+			mapping task and replace both files.
+		</footer>
+
+		<script id="arch-data" type="application/json">
+			{
+				"$schema": "https://hccnj.dev/schemas/architecture-map.v1.json",
+				"name": "HCCNA Backend",
+				"description": "Bun + Hono + GraphQL Yoga + Effect backend for the HCCNA church mobile app. Mid-migration to an Effect-first architecture where transport layers stay thin and behavior lives behind Effect services.",
+				"generatedAt": "2026-05-14",
+				"runtime": {
+					"engine": "Bun 1.3.x",
+					"language": "TypeScript",
+					"entrypoint": "src/index.ts",
+					"lifecycle": "src/effect/Main.ts",
+					"managedRuntime": "src/effect/Runtime.ts",
+					"config": "src/effect/AppConfig.ts",
+					"ports": {
+						"http": 8080,
+						"metrics": 9184
+					}
+				},
+				"transport": {
+					"description": "Thin HTTP shell; all real work delegates into the Effect ManagedRuntime via boundary adapters.",
+					"http": {
+						"file": "src/app.ts",
+						"framework": "Hono (OpenAPIHono)",
+						"middleware": [
+							"cors",
+							"compress",
+							"prettyJSON",
+							"requestId",
+							"timeout",
+							"pinoLogger",
+							"Sentry"
+						],
+						"endpoints": [
+							{
+								"path": "/graphql",
+								"kind": "graphql",
+								"owner": "src/routes/graphql.ts"
+							},
+							{
+								"path": "/v1/*",
+								"kind": "rest",
+								"owner": "src/routes/v1/index.ts"
+							},
+							{
+								"path": "/reference",
+								"kind": "docs",
+								"owner": "@scalar/hono-api-reference"
+							},
+							{
+								"path": "/openapi.json",
+								"kind": "spec",
+								"owner": "@hono/zod-openapi"
+							},
+							{ "path": "/healthz", "kind": "health", "owner": "src/app.ts" },
+							{
+								"path": "/readyz",
+								"kind": "health",
+								"owner": "OperationalReadinessService",
+								"adapter": "src/transport/http/honoEffectRunner.ts"
+							},
+							{
+								"path": "/metrics",
+								"kind": "telemetry",
+								"owner": "src/app.ts (metricsApp, port 9184)"
+							}
+						]
+					},
+					"rest": {
+						"framework": "@hono/zod-openapi",
+						"version": "v1",
+						"routes": [
+							{
+								"path": "/v1/attendance-exports",
+								"file": "src/routes/v1/attendance-exports.ts"
+							}
+						]
+					},
+					"graphql": {
+						"framework": "GraphQL Yoga + Pothos",
+						"context": "src/graphql/context.ts",
+						"schemaBuilder": "src/graphql/builder.ts",
+						"schemaEntry": "src/graphql/schema.ts",
+						"schemaSDL": "schema.graphql",
+						"plugins": [
+							"@pothos/plugin-directives",
+							"@pothos/plugin-drizzle",
+							"@pothos/plugin-errors",
+							"@pothos/plugin-relay",
+							"@pothos/plugin-scope-auth",
+							"@pothos/plugin-simple-objects",
+							"@pothos/plugin-tracing",
+							"@pothos/plugin-with-input",
+							"@pothos/plugin-zod"
+						],
+						"yogaPlugins": [
+							"apq",
+							"defer-stream",
+							"prometheus",
+							"response-cache",
+							"@envelop/sentry"
+						],
+						"auth": {
+							"model": "src/graphql/auth-model.ts",
+							"scopes": "src/graphql/auth-scopes.ts",
+							"authenticator": "src/graphql/authenticator.ts"
+						},
+						"caching": {
+							"edge": "Stellate (stellate.ts)",
+							"responseCache": "src/graphql/responseCache.ts",
+							"session": "src/graphql/sharedResponseCachePolicy.ts"
+						},
+						"operationCounts": { "queries": 22, "mutations": 18 },
+						"modules": [
+							{
+								"name": "scriptures/vod",
+								"file": "src/graphql/schema/scriptures/vod.ts"
+							},
+							{
+								"name": "cms/sermon",
+								"file": "src/graphql/schema/cms/sermon.ts"
+							},
+							{ "name": "cms/home", "file": "src/graphql/schema/cms/home.ts" },
+							{
+								"name": "cms/campuses",
+								"file": "src/graphql/schema/cms/campuses.ts"
+							},
+							{
+								"name": "cms/events",
+								"file": "src/graphql/schema/cms/events.ts"
+							},
+							{ "name": "cms/core", "file": "src/graphql/schema/cms/core.ts" },
+							{
+								"name": "cms/thoughtOfGod",
+								"file": "src/graphql/schema/cms/thoughtOfGod.ts"
+							},
+							{
+								"name": "cms/webhookUpdate",
+								"file": "src/graphql/schema/cms/webhookUpdate.ts"
+							},
+							{
+								"name": "castr/stream",
+								"file": "src/graphql/schema/castr/stream.ts"
+							},
+							{
+								"name": "event/attendance",
+								"file": "src/graphql/schema/event/attendance.ts"
+							},
+							{ "name": "user", "file": "src/graphql/schema/user/index.ts" },
+							{
+								"name": "user/update-user",
+								"file": "src/graphql/schema/user/update-user.ts"
+							},
+							{
+								"name": "user/send-broadcast",
+								"file": "src/graphql/schema/user/send-broadcast.ts"
+							},
+							{
+								"name": "user/profile",
+								"file": "src/graphql/schema/user/profile.ts"
+							},
+							{
+								"name": "user/donationsV2",
+								"file": "src/graphql/schema/user/donationsV2.ts"
+							}
+						]
+					},
+					"boundaries": {
+						"honoAdapter": "src/transport/http/honoEffectRunner.ts",
+						"graphqlAdapter": "src/graphql/context.ts (ctx.effect)",
+						"requestExecution": "src/effect/requestExecution.ts"
+					}
+				},
+				"effectRuntime": {
+					"description": "Layer-composed ManagedRuntime that provides all Effect services. Composed in tiers so dependencies flow upward.",
+					"file": "src/effect/Runtime.ts",
+					"layerTiers": [
+						{
+							"tier": 0,
+							"name": "Infra",
+							"services": [
+								"AppConfig",
+								"AppLogger",
+								"DbHealth",
+								"FirebaseAdmin",
+								"Redis",
+								"LRU",
+								"FirebaseAuth",
+								"ExportStorage",
+								"Mail",
+								"Statsig",
+								"GraphQLResponseCache",
+								"GraphQLRateLimitStore"
+							]
+						},
+						{
+							"tier": 1,
+							"name": "External Integrations",
+							"services": ["AuthService", "CCBService", "StrapiService", "CastrService"]
+						},
+						{
+							"tier": 2,
+							"name": "Domain",
+							"services": [
+								"CMSService",
+								"GivingService",
+								"VodService",
+								"WordOfActivationService",
+								"ProfileService",
+								"UserProfileUpdateService",
+								"StreamMappingService",
+								"AttendanceExportService",
+								"OperationalReadinessService"
+							]
+						}
+					]
+				},
+				"services": [
+					{
+						"name": "AppConfigLive",
+						"file": "src/effect/AppConfig.ts",
+						"role": "Typed runtime config via Effect Config",
+						"category": "infra"
+					},
+					{
+						"name": "AppLoggerService",
+						"file": "src/effect/services/AppLoggerService.ts",
+						"role": "Pino-backed structured logger",
+						"category": "infra"
+					},
+					{
+						"name": "RedisService",
+						"file": "src/effect/RedisService.ts",
+						"role": "Redis client lifecycle",
+						"category": "infra",
+						"deps": ["AppConfig"]
+					},
+					{
+						"name": "LRUService",
+						"file": "src/effect/LRUService.ts",
+						"role": "In-process LRU cache",
+						"category": "infra",
+						"deps": ["AppConfig"]
+					},
+					{
+						"name": "DbHealthService",
+						"file": "src/effect/services/DbHealthService.ts",
+						"role": "Postgres readiness probe",
+						"category": "infra"
+					},
+					{
+						"name": "FirebaseAdminService",
+						"file": "src/effect/services/FirebaseAdminService.ts",
+						"role": "Firebase Admin SDK wrapper (Firestore, Auth, secondary app)",
+						"category": "infra"
+					},
+					{
+						"name": "FirebaseAuthService",
+						"file": "src/effect/services/FirebaseAuthService.ts",
+						"role": "Firebase Auth (verify tokens, manage users)",
+						"category": "infra",
+						"deps": ["FirebaseAdmin"]
+					},
+					{
+						"name": "ExportStorageService",
+						"file": "src/effect/services/ExportStorageService.ts",
+						"role": "Cloud storage for generated exports (PDFs)",
+						"category": "infra",
+						"deps": ["AppConfig", "FirebaseAdmin"]
+					},
+					{
+						"name": "MailService",
+						"file": "src/effect/services/MailService.ts",
+						"role": "Transactional email via SendGrid",
+						"category": "infra",
+						"deps": ["AppConfig", "AppLogger"]
+					},
+					{
+						"name": "StatsigService",
+						"file": "src/effect/StatsigService.ts",
+						"role": "Feature flags and experimentation",
+						"category": "infra",
+						"deps": ["AppConfig", "AppLogger"]
+					},
+					{
+						"name": "GraphQLResponseCacheService",
+						"file": "src/effect/services/GraphQLResponseCacheService.ts",
+						"role": "Response cache for Yoga (Redis + LRU)",
+						"category": "infra",
+						"deps": ["Redis", "LRU"]
+					},
+					{
+						"name": "GraphQLRateLimitStoreService",
+						"file": "src/effect/services/GraphQLRateLimitStoreService.ts",
+						"role": "Per-operation rate limit store",
+						"category": "infra"
+					},
+					{
+						"name": "AuthService",
+						"file": "src/effect/services/AuthService.ts",
+						"role": "App-level auth orchestration",
+						"category": "integration"
+					},
+					{
+						"name": "CCBService",
+						"file": "src/effect/services/CCBService.ts",
+						"role": "Church Community Builder API client (uses @hccnj/ccb)",
+						"category": "integration"
+					},
+					{
+						"name": "StrapiService",
+						"file": "src/effect/services/StrapiService.ts",
+						"role": "Strapi CMS read client",
+						"category": "integration"
+					},
+					{
+						"name": "CastrService",
+						"file": "src/effect/services/CastrService.ts",
+						"role": "Castr streaming platform client (uses @hccnj/castr)",
+						"category": "integration"
+					},
+					{
+						"name": "CMSService",
+						"file": "src/effect/services/CMSService.ts",
+						"role": "Domain-level CMS façade over Strapi / Postgres cache",
+						"category": "domain",
+						"subdir": "src/effect/services/cms"
+					},
+					{
+						"name": "GivingService",
+						"file": "src/effect/services/GivingService.ts",
+						"role": "User-facing giving / donation history",
+						"category": "domain"
+					},
+					{
+						"name": "VodService",
+						"file": "src/effect/services/VodService.ts",
+						"role": "Verse of the Day selection and lookup",
+						"category": "domain"
+					},
+					{
+						"name": "WordOfActivationService",
+						"file": "src/effect/services/WordOfActivationService.ts",
+						"role": "Monthly Word of Activation per user + subscription",
+						"category": "domain"
+					},
+					{
+						"name": "ProfileService",
+						"file": "src/effect/services/ProfileService.ts",
+						"role": "Read User Profile",
+						"category": "domain"
+					},
+					{
+						"name": "UserProfileUpdateService",
+						"file": "src/effect/services/UserProfileUpdateService.ts",
+						"role": "Mutate User Profile (linked CCB Individual etc.)",
+						"category": "domain"
+					},
+					{
+						"name": "StreamMappingService",
+						"file": "src/effect/services/StreamMappingService.ts",
+						"role": "Castr stream → app surface mapping",
+						"category": "domain"
+					},
+					{
+						"name": "AttendanceExportService",
+						"file": "src/effect/services/AttendanceExportService.ts",
+						"role": "Exemplar capability — PDF attendance exports",
+						"category": "domain",
+						"subdir": "src/effect/services/attendanceExport",
+						"exemplar": true
+					},
+					{
+						"name": "OperationalReadinessService",
+						"file": "src/effect/services/OperationalReadinessService.ts",
+						"role": "Aggregate readiness checks for /readyz",
+						"category": "domain"
+					}
+				],
+				"database": {
+					"engine": "Postgres",
+					"orm": "Drizzle ORM (1.0 beta) + drizzle-kit",
+					"configFile": "drizzle.config.ts",
+					"migrationsDir": "drizzle/",
+					"schemaEntry": "src/db/schema/index.ts",
+					"relations": "src/db/schema/relations.ts",
+					"domains": [
+						{
+							"domain": "Users & Auth",
+							"tables": [
+								{ "name": "users", "file": "src/db/schema/users.ts" },
+								{ "name": "departments", "file": "src/db/schema/users.ts" },
+								{ "name": "ministries", "file": "src/db/schema/users.ts" },
+								{
+									"name": "userDepartments",
+									"file": "src/db/schema/tables.ts",
+									"kind": "junction"
+								},
+								{
+									"name": "userMinistries",
+									"file": "src/db/schema/tables.ts",
+									"kind": "junction"
+								}
+							]
+						},
+						{
+							"domain": "Scriptures / Word of Activation",
+							"tables": [
+								{ "name": "scriptures", "file": "src/db/schema/scriptures.ts" },
+								{
+									"name": "dailyVerses",
+									"file": "src/db/schema/scriptures.ts"
+								},
+								{
+									"name": "wordActivationSubs",
+									"file": "src/db/schema/scriptures.ts"
+								}
+							]
+						},
+						{
+							"domain": "Giving (CCB cache)",
+							"tables": [
+								{ "name": "donations", "file": "src/db/schema/donations.ts" },
+								{
+									"name": "donationYearlySummaries",
+									"file": "src/db/schema/donations.ts"
+								},
+								{
+									"name": "donationSyncLogs",
+									"file": "src/db/schema/donations.ts"
+								}
+							]
+						},
+						{
+							"domain": "Attendance",
+							"tables": [
+								{
+									"name": "eventAttendanceSummaries",
+									"file": "src/db/schema/eventAttendance.ts"
+								},
+								{
+									"name": "eventAttendanceEntries",
+									"file": "src/db/schema/eventAttendance.ts"
+								},
+								{
+									"name": "attendancePdfExports",
+									"file": "src/db/schema/attendanceExports.ts"
+								}
+							]
+						},
+						{
+							"domain": "CMS Content (cached)",
+							"tables": [
+								{
+									"name": "coreSettings",
+									"file": "src/db/schema/cms-content/core.ts"
+								},
+								{
+									"name": "featuredEvents",
+									"file": "src/db/schema/cms-content/home.ts"
+								},
+								{
+									"name": "upComingEvents",
+									"file": "src/db/schema/cms-content/home.ts"
+								}
+							]
+						}
+					]
+				},
+				"integrations": {
+					"model": "Plugin manifests declare capabilities, telemetry, contract version, and an optional Layer factory. The registry assembles enabled plugins into a single Effect Layer.",
+					"registry": "src/modules/integrations/registry.ts",
+					"manifestSource": "src/modules/integrations/plugin-manifest.ts",
+					"contracts": "src/modules/integrations/telemetry/contracts.ts",
+					"config": "src/platform/config/plugins.ts",
+					"plugins": [
+						{
+							"id": "ccb",
+							"capabilities": ["churchApi"],
+							"external": "Church Community Builder REST API",
+							"workspacePackage": "@hccnj/ccb"
+						},
+						{
+							"id": "cms",
+							"capabilities": ["cms"],
+							"external": "CMS abstraction over Strapi"
+						},
+						{
+							"id": "castr",
+							"capabilities": ["streaming"],
+							"external": "Castr live streaming API",
+							"workspacePackage": "@hccnj/castr"
+						},
+						{
+							"id": "firebase",
+							"capabilities": ["auth", "documentStore"],
+							"external": "Firebase Admin (Auth + Firestore)"
+						},
+						{
+							"id": "sendgrid",
+							"capabilities": ["transactionalEmail"],
+							"external": "SendGrid Mail API"
+						},
+						{
+							"id": "redis",
+							"capabilities": ["cache", "rateLimit"],
+							"external": "Redis"
+						},
+						{
+							"id": "strapi",
+							"capabilities": ["cmsBackend"],
+							"external": "Strapi v4 CMS"
+						}
+					]
+				},
+				"packages": [
+					{
+						"name": "@hccnj/castr",
+						"path": "packages/castr",
+						"role": "Typed client for the Castr streaming API",
+						"modules": ["client.ts", "types.ts", "index.ts"]
+					},
+					{
+						"name": "@hccnj/ccb",
+						"path": "packages/ccb",
+						"role": "Typed client + Zod schemas for Church Community Builder",
+						"modules": ["client.ts", "cache-config.ts", "url.ts", "xml.ts", "types.ts", "schemas/"]
+					}
+				],
+				"observability": {
+					"errorTracking": {
+						"service": "Sentry",
+						"sdk": "@sentry/bun",
+						"init": "src/instrument.ts"
+					},
+					"tracing": {
+						"service": "OpenTelemetry",
+						"exporter": "OTLP HTTP",
+						"sdk": "src/telemetry.ts",
+						"effectBridge": "@effect/opentelemetry"
+					},
+					"metrics": {
+						"service": "Prometheus",
+						"endpoint": "/metrics on :9184",
+						"customRegistry": "src/platform/observability/prometheusRegistry.ts",
+						"files": "src/metrics/, src/metrics.ts"
+					},
+					"logging": {
+						"service": "Pino",
+						"middleware": "src/transport/http/pinoLoggerMiddleware.ts",
+						"redaction": "src/platform/observability/redaction.ts"
+					},
+					"graphqlMetrics": "@graphql-yoga/plugin-prometheus",
+					"guardrails": [
+						"scripts/check-observability.ts",
+						"scripts/check-effect-boundaries.ts",
+						"scripts/validate-observability-assets.ts"
+					]
+				},
+				"platform": {
+					"config": "src/platform/config/",
+					"observability": "src/platform/observability/"
+				},
+				"utils": {
+					"firebase": "src/utils/firebase.ts",
+					"ccbHelpers": "src/effect/services/giving/platforms.ts, src/effect/services/giving/parseGiving.ts, src/effect/services/giving/parsePaymentString.ts",
+					"castrHelpers": "src/utils/castr.ts, src/utils/castr/",
+					"dataLoaders": "src/graphql/loaders/ (castr, ccbForms, firebase, strapi, vod, woa)",
+					"honoAdapters": "src/transport/http/",
+					"messages": "src/utils/messages/email/",
+					"wordOfActivation": "src/utils/wordOfActivation/",
+					"stellateClient": "src/utils/stellate.ts",
+					"tabularExport": "src/utils/tabularExport.ts",
+					"recurrenceCalculator": "src/utils/recurrenceCalculator.ts"
+				},
+				"scripts": [
+					{
+						"file": "scripts/docker-entrypoint.ts",
+						"role": "Container entry, optionally runs migrations"
+					},
+					{
+						"file": "scripts/migrate.ts",
+						"role": "Standalone DB migration runner"
+					},
+					{
+						"file": "scripts/migrate-firebase-to-postgres.ts",
+						"role": "One-shot Firestore → Postgres data backfill (db:seed)"
+					},
+					{
+						"file": "scripts/check-dependency-policy.ts",
+						"role": "Dependency policy guardrail"
+					},
+					{
+						"file": "scripts/check-effect-boundaries.ts",
+						"role": "Ratchets Effect boundary violations"
+					},
+					{
+						"file": "scripts/check-observability.ts",
+						"role": "Required observability checks"
+					},
+					{
+						"file": "scripts/validate-observability-assets.ts",
+						"role": "Validates grafana / prom asset shape"
+					},
+					{
+						"file": "scripts/test-summary.ts",
+						"role": "Vitest summary wrapper"
+					}
+				],
+				"deployment": {
+					"container": "Dockerfile + docker-compose.yml",
+					"cloud": "Railway via .github/workflows/deploy-server.yml",
+					"edgeCache": "Stellate (stellate.ts) for GraphQL",
+					"migrations": {
+						"container": "run on startup unless RUN_MIGRATIONS=false",
+						"production": "manual Drizzle Migrations CI workflow (`bun run db:migrate:run`)",
+						"envOverride": "RUN_MIGRATIONS=false (set on Railway)"
+					}
+				},
+				"domain": {
+					"source": "CONTEXT.md",
+					"entities": [
+						"User",
+						"User Profile",
+						"CCB Individual",
+						"CCB Family",
+						"CCB Event",
+						"Attendance Event",
+						"Attendance Occurrence",
+						"Attending Group",
+						"CCB Participant",
+						"Attendance Entry",
+						"Attendance Snapshot",
+						"Giving",
+						"Donation",
+						"Giving Summary",
+						"CCB Transaction",
+						"Scripture",
+						"Verse of the Day",
+						"Word of Activation",
+						"Word of Activation Subscription",
+						"Integration",
+						"Integration Capability",
+						"Integration Manifest"
+					],
+					"capabilityReshapingPriority": ["CMS", "Giving", "Streaming", "Verse of the Day"]
+				},
+				"migrationState": {
+					"direction": "Effect-first; Hono/Yoga are transport adapters only",
+					"exemplar": "AttendanceExportService + src/effect/services/attendanceExport/*",
+					"guardrail": "scripts/check-effect-boundaries.ts (ratchet)",
+					"adrs": [
+						"docs/adr/0001-effect-service-style.md",
+						"docs/adr/0002-effect-execution-boundaries.md",
+						"docs/adr/0003-firebase-boundary.md",
+						"docs/effect-first-architecture-adr.md"
+					]
+				}
+			}
+		</script>
+		<script>
+			const data = JSON.parse(document.getElementById("arch-data").textContent);
+
+			const $ = (id) => document.getElementById(id);
+			const txt = (s) => document.createTextNode(String(s));
+			const el = (tag, props, kids) => {
+				const node = document.createElement(tag);
+				if (props)
+					for (const k in props) {
+						if (k === "class") node.className = props[k];
+						else node[k] = props[k];
+					}
+				if (kids != null) {
+					const arr = Array.isArray(kids) ? kids : [kids];
+					for (const c of arr) node.append(c instanceof Node ? c : txt(c));
+				}
+				return node;
+			};
+			const code = (s) => el("code", null, s);
+			const mono = (s) => el("span", { class: "mono" }, s);
+			const pill = (s) => el("span", { class: "pill" }, s);
+			const tag = (s) => el("span", { class: "tag" }, s);
+			const row = (cells) => {
+				const tr = el("tr");
+				for (const c of cells) tr.append(c);
+				return tr;
+			};
+			const th = (s) => el("th", null, s);
+			const td = (kids) => el("td", null, kids);
+
+			// Header
+			$("title").textContent = `${data.name} — Architecture Map`;
+			$("desc").textContent = data.description;
+			$("rt-engine").textContent = data.runtime.engine;
+			$("rt-entry").textContent = data.runtime.entrypoint;
+			$("rt-gen").textContent = data.generatedAt;
+			$("flow-hono").textContent = data.transport.http.file;
+
+			// Endpoints table
+			{
+				const t = $("t-endpoints");
+				t.append(row([th("Path"), th("Kind"), th("Owner")]));
+				for (const e of data.transport.http.endpoints) {
+					t.append(row([td(code(e.path)), td(pill(e.kind)), td(mono(e.owner))]));
+				}
+			}
+
+			// REST table
+			{
+				const t = $("t-rest");
+				t.append(row([th("Path"), th("File")]));
+				for (const r of data.transport.rest.routes) {
+					t.append(row([td(code(r.path)), td(mono(r.file))]));
+				}
+			}
+
+			// GraphQL summary (no innerHTML)
+			{
+				const g = data.transport.graphql;
+				const sum = $("gql-summary");
+				sum.append(txt(`${g.framework} · `));
+				sum.append(mono(g.schemaEntry));
+				sum.append(txt(" · SDL: "));
+				sum.append(mono(g.schemaSDL));
+				sum.append(el("br"));
+				sum.append(txt("Operations: "));
+				sum.append(el("strong", null, String(g.operationCounts.queries)));
+				sum.append(txt(" queries · "));
+				sum.append(el("strong", null, String(g.operationCounts.mutations)));
+				sum.append(txt(" mutations"));
+
+				$("gql-mod-count").textContent = String(g.modules.length);
+				for (const m of g.modules) {
+					const li = el("li", null, `${m.name} — `);
+					li.append(mono(m.file));
+					$("gql-modules").append(li);
+				}
+				for (const p of g.plugins) $("gql-plugins").append(el("li", { class: "mono" }, p));
+				for (const p of g.yogaPlugins) $("gql-yoga").append(el("li", { class: "mono" }, p));
+			}
+
+			// Layer tiers
+			{
+				const root = $("layer-tiers");
+				for (const tier of data.effectRuntime.layerTiers) {
+					const layer = el("div", { class: "layer" });
+					layer.append(el("h3", null, `Tier ${tier.tier} — ${tier.name}`));
+					const cards = el("div", { class: "cards" });
+					for (const svcName of tier.services) {
+						const svc = data.services.find(
+							(s) =>
+								s.name === svcName || s.name === svcName + "Live" || s.name.startsWith(svcName),
+						);
+						const cls = `card cat-${svc ? svc.category : "infra"}${svc && svc.exemplar ? " exemplar" : ""}`;
+						const card = el("div", { class: cls });
+						card.append(el("div", { class: "name" }, svcName));
+						if (svc) {
+							card.append(el("div", { class: "role" }, svc.role));
+							card.append(el("div", { class: "file" }, svc.file));
+						}
+						cards.append(card);
+					}
+					layer.append(cards);
+					root.append(layer);
+				}
+			}
+
+			// All services with filter
+			{
+				const grid = $("services-grid");
+				const filter = $("svc-filter");
+				const render = () => {
+					const q = filter.value.trim().toLowerCase();
+					grid.textContent = "";
+					const visible = data.services.filter(
+						(s) =>
+							!q ||
+							s.name.toLowerCase().includes(q) ||
+							s.role.toLowerCase().includes(q) ||
+							(s.file || "").toLowerCase().includes(q),
+					);
+					$("svc-count").textContent = `${visible.length} / ${data.services.length}`;
+					for (const s of visible) {
+						const card = el("div", {
+							class: `card cat-${s.category}${s.exemplar ? " exemplar" : ""}`,
+						});
+						card.append(el("div", { class: "name" }, s.exemplar ? `★ ${s.name}` : s.name));
+						card.append(el("div", { class: "role" }, s.role));
+						card.append(el("div", { class: "file" }, s.file));
+						if (s.subdir) card.append(el("div", { class: "file" }, "└ " + s.subdir));
+						grid.append(card);
+					}
+				};
+				filter.addEventListener("input", render);
+				render();
+			}
+
+			// DB
+			{
+				$("db-engine").textContent = data.database.engine;
+				$("db-orm").textContent = data.database.orm;
+				$("db-entry").textContent = data.database.schemaEntry;
+				$("db-rel").textContent = data.database.relations;
+				$("db-mig").textContent = data.database.migrationsDir;
+				$("db-cfg").textContent = data.database.configFile;
+				const root = $("db-domains");
+				for (const d of data.database.domains) {
+					const wrap = el("details", { open: true });
+					wrap.append(el("summary", null, `${d.domain} (${d.tables.length})`));
+					const ul = el("ul", { class: "list" });
+					for (const t of d.tables) {
+						const li = el("li");
+						li.append(code(t.name));
+						if (t.kind) {
+							li.append(txt(" "));
+							li.append(tag(t.kind));
+						}
+						li.append(txt(" — "));
+						li.append(mono(t.file));
+						ul.append(li);
+					}
+					wrap.append(ul);
+					root.append(wrap);
+				}
+			}
+
+			// Integrations
+			{
+				$("int-model").textContent = data.integrations.model;
+				$("int-registry").textContent = data.integrations.registry;
+				$("int-manifest").textContent = data.integrations.manifestSource;
+				$("int-contracts").textContent = data.integrations.contracts;
+				const t = $("t-plugins");
+				t.append(
+					row([
+						th("Plugin ID"),
+						th("Capabilities"),
+						th("External System"),
+						th("Workspace Package"),
+					]),
+				);
+				for (const p of data.integrations.plugins) {
+					const capsCell = td([]);
+					for (const c of p.capabilities) capsCell.append(tag(c));
+					t.append(
+						row([td(pill(p.id)), capsCell, td(p.external), td(mono(p.workspacePackage || "—"))]),
+					);
+				}
+			}
+
+			// Packages
+			{
+				const grid = $("packages-grid");
+				for (const p of data.packages) {
+					const card = el("div", { class: "card" });
+					card.append(el("div", { class: "name" }, p.name));
+					card.append(el("div", { class: "role" }, p.role));
+					card.append(el("div", { class: "file" }, p.path));
+					const modsLine = el("div", { class: "role" }, "modules: ");
+					modsLine.append(mono(p.modules.join(", ")));
+					card.append(modsLine);
+					grid.append(card);
+				}
+			}
+
+			// Observability
+			{
+				const t = $("t-obs");
+				const o = data.observability;
+				const rows = [
+					["Errors", `${o.errorTracking.service} (${o.errorTracking.sdk})`, o.errorTracking.init],
+					[
+						"Tracing",
+						`${o.tracing.service} via ${o.tracing.exporter}`,
+						`${o.tracing.sdk} · bridge: ${o.tracing.effectBridge}`,
+					],
+					[
+						"Metrics",
+						`${o.metrics.service} @ ${o.metrics.endpoint}`,
+						`${o.metrics.customRegistry} · ${o.metrics.files}`,
+					],
+					[
+						"Logging",
+						o.logging.service,
+						`${o.logging.middleware} · redaction: ${o.logging.redaction}`,
+					],
+					["GraphQL metrics", o.graphqlMetrics, "—"],
+				];
+				t.append(row([th("Concern"), th("Stack"), th("Files")]));
+				for (const r of rows) {
+					t.append(row([td(r[0]), td(r[1]), td(mono(r[2]))]));
+				}
+				for (const g of o.guardrails) $("obs-guards").append(el("li", { class: "mono" }, g));
+			}
+
+			// Domain
+			{
+				$("dom-src").textContent = data.domain.source;
+				$("dom-prio").textContent = data.domain.capabilityReshapingPriority.join(" → ");
+				for (const e of data.domain.entities) $("dom-entities").append(el("li", null, e));
+			}
+
+			// Migration
+			{
+				$("mig-dir").textContent = data.migrationState.direction;
+				$("mig-exemplar").textContent = data.migrationState.exemplar;
+				$("mig-guard").textContent = data.migrationState.guardrail;
+				const adrCell = $("mig-adrs");
+				for (const a of data.migrationState.adrs) {
+					adrCell.append(el("div", { class: "mono" }, a));
+				}
+			}
+
+			// Scripts
+			{
+				const t = $("t-scripts");
+				t.append(row([th("Script"), th("Role")]));
+				for (const s of data.scripts) {
+					t.append(row([td(mono(s.file)), td(s.role)]));
+				}
+			}
+
+			// Deploy
+			{
+				const t = $("t-deploy");
+				const d = data.deployment;
+				const rows = [
+					["Container", d.container],
+					["Cloud", d.cloud],
+					["Edge cache", d.edgeCache],
+					["Migrations (container)", d.migrations.container],
+					["Migrations (production)", d.migrations.production],
+					["Override env", d.migrations.envOverride],
+				];
+				for (const r of rows) {
+					t.append(row([th(r[0]), td(mono(r[1]))]));
+				}
+			}
+
+			$("raw-json").textContent = JSON.stringify(data, null, 2);
+		</script>
+	</body>
+</html>

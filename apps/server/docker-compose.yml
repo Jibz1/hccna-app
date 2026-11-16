@@ -1,0 +1,21 @@
+services:
+  redis:
+    container_name: "hccna-redis"
+    image: redis:7.2
+    restart: always
+    ports:
+      - "6379:6379"
+
+  timescale:
+    container_name: "hccna-timescale"
+    image: "timescale/timescaledb:latest-pg17"
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - "pgdata:/var/lib/postgresql/data/"
+    environment:
+      POSTGRES_PASSWORD:
+
+volumes:
+  pgdata: {}

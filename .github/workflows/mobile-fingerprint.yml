@@ -1,0 +1,58 @@
+name: mobile fingerprint
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - "packages/**"
+      - "patches/**"
+      - "bun.lock"
+      - "package.json"
+      - ".github/workflows/mobile-fingerprint.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-fingerprint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  fingerprint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.4"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check out the base commit
+        run: |
+          # The checkout is the PR merge commit; its first parent is the base.
+          BASE_SHA="$(git rev-parse HEAD^1)"
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+          cd "$RUNNER_TEMP/base"
+          bun install --frozen-lockfile
+
+      # The head's expo/fingerprint library computes both fingerprints; each
+      # project supplies its own app config and fingerprint.config.js. The
+      # checkout is the PR merged into its base, so the diff holds only this
+      # PR's native changes.
+      - name: Report native changes
+        working-directory: apps/mobile
+        run: bun --no-env-file scripts/fingerprint-report.ts "$RUNNER_TEMP/base/apps/mobile" .

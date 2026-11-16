@@ -1,0 +1,2166 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>HCCNA Backend — Architecture, Data Flow, Runtime</title>
+		<style>
+			:root {
+				color-scheme: dark;
+				--bg: #0b0e14;
+				--panel: #121722;
+				--panel-2: #171e2b;
+				--line: #2a3448;
+				--text: #eef2f8;
+				--muted: #9aa7bb;
+				--blue: #7aa2f7;
+				--violet: #bb9af7;
+				--green: #9ece6a;
+				--amber: #e0af68;
+				--red: #f7768e;
+				--cyan: #7dcfff;
+				--shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+				--mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+			html {
+				scroll-behavior: smooth;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background:
+					radial-gradient(circle at 14% -12%, rgba(122, 162, 247, 0.16), transparent 30rem),
+					radial-gradient(circle at 95% 2%, rgba(187, 154, 247, 0.12), transparent 27rem), var(--bg);
+				color: var(--text);
+				font:
+					14px/1.5 Inter,
+					ui-sans-serif,
+					system-ui,
+					-apple-system,
+					BlinkMacSystemFont,
+					"Segoe UI",
+					sans-serif;
+			}
+
+			button {
+				font: inherit;
+			}
+			code {
+				font-family: var(--mono);
+			}
+
+			.shell {
+				width: min(1180px, calc(100% - 32px));
+				margin: 0 auto;
+				padding: 42px 0 72px;
+			}
+			.eyebrow {
+				color: var(--cyan);
+				font: 700 11px/1 var(--mono);
+				letter-spacing: 0.16em;
+				text-transform: uppercase;
+			}
+			h1 {
+				margin: 12px 0 9px;
+				max-width: 800px;
+				font-size: clamp(28px, 4vw, 48px);
+				line-height: 1.05;
+				letter-spacing: -0.035em;
+			}
+			.lede {
+				margin: 0;
+				max-width: 830px;
+				color: var(--muted);
+				font-size: 16px;
+			}
+
+			.tabs {
+				display: flex;
+				gap: 8px;
+				margin: 28px 0 18px;
+				padding: 5px;
+				width: fit-content;
+				max-width: 100%;
+				overflow-x: auto;
+				border: 1px solid var(--line);
+				border-radius: 13px;
+				background: rgba(18, 23, 34, 0.86);
+				box-shadow: var(--shadow);
+			}
+			.tab {
+				border: 0;
+				border-radius: 9px;
+				padding: 9px 13px;
+				color: var(--muted);
+				background: transparent;
+				cursor: pointer;
+				white-space: nowrap;
+				transition: 0.15s ease;
+			}
+			.tab:hover {
+				color: var(--text);
+				background: rgba(255, 255, 255, 0.04);
+			}
+			.tab[aria-selected="true"] {
+				color: #08111d;
+				background: var(--blue);
+				font-weight: 750;
+			}
+
+			.view {
+				display: none;
+			}
+			.view.active {
+				display: block;
+				animation: enter 0.22s ease-out;
+			}
+			@keyframes enter {
+				from {
+					opacity: 0;
+					transform: translateY(4px);
+				}
+			}
+
+			.summary {
+				display: grid;
+				grid-template-columns: 1.4fr 1fr 1fr;
+				gap: 12px;
+				margin-bottom: 16px;
+			}
+			.metric,
+			.card,
+			.frame {
+				border: 1px solid var(--line);
+				background: linear-gradient(160deg, rgba(23, 30, 43, 0.94), rgba(18, 23, 34, 0.94));
+				box-shadow: var(--shadow);
+			}
+			.metric {
+				min-height: 104px;
+				padding: 16px;
+				border-radius: 14px;
+			}
+			.metric strong {
+				display: block;
+				margin-bottom: 6px;
+				font-size: 17px;
+				line-height: 1.2;
+			}
+			.metric span {
+				color: var(--muted);
+			}
+			.metric.key {
+				border-color: rgba(122, 162, 247, 0.65);
+			}
+			.metric.key strong {
+				color: var(--blue);
+			}
+
+			.frame {
+				padding: 18px;
+				border-radius: 16px;
+				overflow: hidden;
+			}
+			.frame + .frame {
+				margin-top: 16px;
+			}
+			.frame-head {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				gap: 12px;
+				margin-bottom: 15px;
+			}
+			.frame h2 {
+				margin: 0;
+				font-size: 16px;
+			}
+			.frame-head p {
+				margin: 0;
+				color: var(--muted);
+				font-size: 12px;
+			}
+
+			.architecture {
+				display: grid;
+				gap: 11px;
+			}
+			.layer {
+				display: grid;
+				grid-template-columns: 146px 1fr;
+				gap: 12px;
+				align-items: stretch;
+			}
+			.layer-label {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				padding: 13px;
+				border: 1px solid var(--line);
+				border-radius: 11px;
+				background: rgba(9, 13, 20, 0.48);
+			}
+			.layer-label b {
+				font-size: 12px;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+			}
+			.layer-label small {
+				margin-top: 3px;
+				color: var(--muted);
+			}
+			.nodes {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				padding: 10px;
+				border: 1px dashed var(--line);
+				border-radius: 11px;
+			}
+			.node {
+				flex: 1 1 150px;
+				min-width: 0;
+				padding: 10px 11px;
+				border: 1px solid var(--line);
+				border-radius: 9px;
+				background: var(--panel-2);
+			}
+			.node b {
+				display: block;
+				font-size: 12px;
+			}
+			.node small {
+				display: block;
+				margin-top: 3px;
+				color: var(--muted);
+				font: 10.5px/1.35 var(--mono);
+				overflow-wrap: anywhere;
+			}
+			.clients .layer-label {
+				border-left: 3px solid var(--cyan);
+			}
+			.transport .layer-label {
+				border-left: 3px solid var(--blue);
+			}
+			.runtime .layer-label {
+				border-left: 3px solid var(--violet);
+			}
+			.domain .layer-label {
+				border-left: 3px solid var(--green);
+			}
+			.platform .layer-label {
+				border-left: 3px solid var(--amber);
+			}
+			.external .layer-label {
+				border-left: 3px solid var(--red);
+			}
+			.connector {
+				margin: -3px 0 -3px 73px;
+				height: 20px;
+				border-left: 2px solid var(--line);
+				position: relative;
+			}
+			.connector::after {
+				content: "";
+				position: absolute;
+				left: -5px;
+				bottom: 0;
+				width: 8px;
+				height: 8px;
+				border-right: 2px solid var(--line);
+				border-bottom: 2px solid var(--line);
+				transform: rotate(45deg);
+			}
+
+			.flow-grid {
+				display: grid;
+				grid-template-columns: 1fr 40px 1fr 40px 1fr;
+				align-items: stretch;
+				gap: 7px;
+			}
+			.flow-col {
+				display: grid;
+				gap: 8px;
+			}
+			.stage {
+				padding: 13px;
+				border: 1px solid var(--line);
+				border-radius: 11px;
+				background: rgba(23, 30, 43, 0.86);
+			}
+			.stage .step {
+				color: var(--cyan);
+				font: 700 10px/1 var(--mono);
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.stage b {
+				display: block;
+				margin: 6px 0 3px;
+				font-size: 13px;
+			}
+			.stage p {
+				margin: 0;
+				color: var(--muted);
+				font-size: 12px;
+			}
+			.arrow {
+				display: grid;
+				place-items: center;
+				color: var(--blue);
+				font-size: 22px;
+			}
+			.branch {
+				margin-top: 13px;
+				padding-top: 13px;
+				border-top: 1px solid var(--line);
+			}
+			.branch-title {
+				margin-bottom: 9px;
+				color: var(--muted);
+				font: 700 10px/1 var(--mono);
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.cache-path {
+				display: grid;
+				grid-template-columns: repeat(5, 1fr);
+				gap: 7px;
+			}
+			.cache-box {
+				min-height: 66px;
+				display: grid;
+				place-items: center;
+				padding: 8px;
+				text-align: center;
+				border: 1px solid var(--line);
+				border-radius: 9px;
+				background: rgba(9, 13, 20, 0.48);
+				font-size: 11px;
+			}
+			.cache-box.hit {
+				border-color: rgba(158, 206, 106, 0.55);
+				color: var(--green);
+			}
+			.cache-box.miss {
+				border-color: rgba(224, 175, 104, 0.55);
+				color: var(--amber);
+			}
+
+			.timeline {
+				position: relative;
+				display: grid;
+				gap: 0;
+				padding-left: 44px;
+			}
+			.timeline::before {
+				content: "";
+				position: absolute;
+				left: 17px;
+				top: 15px;
+				bottom: 15px;
+				border-left: 2px solid var(--line);
+			}
+			.event {
+				position: relative;
+				padding: 0 0 19px 10px;
+			}
+			.event:last-child {
+				padding-bottom: 0;
+			}
+			.dot {
+				position: absolute;
+				left: -34px;
+				top: 2px;
+				width: 18px;
+				height: 18px;
+				border: 4px solid var(--panel);
+				border-radius: 50%;
+				background: var(--blue);
+				box-shadow: 0 0 0 1px var(--line);
+			}
+			.event.shutdown .dot {
+				background: var(--red);
+			}
+			.event.request .dot {
+				background: var(--green);
+			}
+			.event b {
+				display: block;
+				margin-bottom: 3px;
+			}
+			.event p {
+				margin: 0;
+				color: var(--muted);
+				font-size: 12px;
+			}
+			.event code {
+				color: var(--violet);
+				font-size: 11px;
+			}
+
+			.runtime-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 16px;
+			}
+			.ops-toolbar {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+				margin-bottom: 14px;
+			}
+			.ops-search {
+				flex: 1;
+				min-width: 180px;
+				padding: 10px 12px;
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				outline: none;
+				color: var(--text);
+				background: #0c111a;
+			}
+			.ops-search:focus {
+				border-color: var(--blue);
+				box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.12);
+			}
+			.ops-filter {
+				display: flex;
+				gap: 5px;
+				padding: 4px;
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				background: #0c111a;
+			}
+			.ops-filter button {
+				padding: 7px 10px;
+				border: 0;
+				border-radius: 7px;
+				color: var(--muted);
+				background: transparent;
+				cursor: pointer;
+			}
+			.ops-filter button.active {
+				color: #07101b;
+				background: var(--cyan);
+				font-weight: 750;
+			}
+			.ops-count {
+				color: var(--muted);
+				font: 11px/1 var(--mono);
+				white-space: nowrap;
+			}
+			.ops-layout {
+				display: grid;
+				grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.6fr);
+				gap: 14px;
+				min-height: 590px;
+			}
+			.ops-list {
+				max-height: 680px;
+				overflow-y: auto;
+				padding-right: 5px;
+				scrollbar-color: var(--line) transparent;
+			}
+			.op-item {
+				display: block;
+				width: 100%;
+				margin-bottom: 7px;
+				padding: 11px 12px;
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				text-align: left;
+				color: var(--text);
+				background: rgba(12, 17, 26, 0.74);
+				cursor: pointer;
+			}
+			.op-item:hover {
+				border-color: rgba(122, 162, 247, 0.7);
+			}
+			.op-item.active {
+				border-color: var(--blue);
+				background: rgba(122, 162, 247, 0.1);
+			}
+			.op-kind {
+				display: inline-block;
+				margin-right: 7px;
+				color: var(--cyan);
+				font: 700 9px/1 var(--mono);
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.op-item b {
+				font: 650 12px/1.3 var(--mono);
+			}
+			.op-item small {
+				display: block;
+				margin-top: 5px;
+				color: var(--muted);
+			}
+			.op-detail {
+				min-width: 0;
+				padding: 18px;
+				border: 1px solid var(--line);
+				border-radius: 13px;
+				background: rgba(12, 17, 26, 0.66);
+			}
+			.op-detail h3 {
+				margin: 6px 0 4px;
+				font: 750 21px/1.2 var(--mono);
+				overflow-wrap: anywhere;
+			}
+			.op-detail .op-purpose {
+				margin: 0;
+				color: var(--muted);
+			}
+			.op-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 7px;
+				margin: 13px 0 17px;
+			}
+			.op-meta span {
+				padding: 4px 8px;
+				border: 1px solid var(--line);
+				border-radius: 999px;
+				color: #cbd6e8;
+				background: rgba(23, 30, 43, 0.9);
+				font-size: 10.5px;
+			}
+			.journey {
+				display: grid;
+				gap: 0;
+				margin-top: 4px;
+			}
+			.journey-stage {
+				display: grid;
+				grid-template-columns: 104px 34px minmax(0, 1fr);
+				align-items: stretch;
+				min-height: 92px;
+			}
+			.journey-phase {
+				align-self: center;
+				padding-right: 12px;
+				text-align: right;
+			}
+			.journey-phase span {
+				display: block;
+				color: var(--muted);
+				font: 750 9px/1 var(--mono);
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+			}
+			.journey-phase b {
+				display: block;
+				margin-top: 6px;
+				font-size: 11.5px;
+			}
+			.journey-rail {
+				position: relative;
+			}
+			.journey-rail::before {
+				content: "";
+				position: absolute;
+				left: 50%;
+				top: -1px;
+				bottom: -1px;
+				border-left: 2px solid var(--line);
+				transform: translateX(-50%);
+			}
+			.journey-stage:first-child .journey-rail::before {
+				top: 50%;
+			}
+			.journey-stage:last-child .journey-rail::before {
+				bottom: 50%;
+			}
+			.journey-dot {
+				position: absolute;
+				z-index: 1;
+				left: 50%;
+				top: 50%;
+				display: grid;
+				place-items: center;
+				width: 25px;
+				height: 25px;
+				border: 4px solid #0c111a;
+				border-radius: 50%;
+				color: #07101b;
+				background: var(--cyan);
+				box-shadow: 0 0 0 1px var(--line);
+				transform: translate(-50%, -50%);
+				font: 800 9px/1 var(--mono);
+			}
+			.journey-card {
+				align-self: center;
+				margin: 7px 0;
+				padding: 13px 14px;
+				border: 1px solid var(--line);
+				border-left: 3px solid var(--cyan);
+				border-radius: 11px;
+				background: linear-gradient(145deg, rgba(23, 30, 43, 0.96), rgba(18, 23, 34, 0.96));
+			}
+			.journey-stage.policy .journey-card {
+				border-left-color: var(--blue);
+			}
+			.journey-stage.policy .journey-dot {
+				background: var(--blue);
+			}
+			.journey-stage.application .journey-card {
+				border-left-color: var(--violet);
+			}
+			.journey-stage.application .journey-dot {
+				background: var(--violet);
+			}
+			.journey-stage.io .journey-card {
+				border-left-color: var(--amber);
+			}
+			.journey-stage.io .journey-dot {
+				background: var(--amber);
+			}
+			.journey-stage.return .journey-card {
+				border-left-color: var(--green);
+			}
+			.journey-stage.return .journey-dot {
+				background: var(--green);
+			}
+			.journey-parts {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+				gap: 12px;
+			}
+			.journey-part + .journey-part {
+				padding-left: 12px;
+				border-left: 1px solid var(--line);
+			}
+			.journey-part b {
+				display: block;
+				margin-bottom: 4px;
+				font-size: 12px;
+			}
+			.journey-part p {
+				margin: 0;
+				max-width: 70ch;
+				color: var(--muted);
+				font-size: 11.5px;
+				line-height: 1.48;
+			}
+			.op-details-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+				margin-top: 11px;
+			}
+			.op-detail-card {
+				padding: 12px;
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				background: rgba(23, 30, 43, 0.58);
+			}
+			.op-detail-card b {
+				display: block;
+				margin-bottom: 4px;
+				color: var(--blue);
+				font-size: 11px;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+			}
+			.op-detail-card code,
+			.op-detail-card span {
+				color: var(--muted);
+				font-size: 11px;
+				overflow-wrap: anywhere;
+			}
+			.empty {
+				padding: 32px 12px;
+				color: var(--muted);
+				text-align: center;
+			}
+			.calltree {
+				margin: 0;
+				padding: 15px;
+				overflow-x: auto;
+				border: 1px solid var(--line);
+				border-radius: 11px;
+				background: #0c111a;
+				color: #cad6e8;
+				font: 12px/1.65 var(--mono);
+			}
+			.blue {
+				color: var(--blue);
+			}
+			.green {
+				color: var(--green);
+			}
+			.violet {
+				color: var(--violet);
+			}
+			.amber {
+				color: var(--amber);
+			}
+			.red {
+				color: var(--red);
+			}
+
+			.note {
+				margin-top: 16px;
+				padding: 13px 15px;
+				border: 1px solid rgba(122, 162, 247, 0.34);
+				border-radius: 11px;
+				background: rgba(122, 162, 247, 0.07);
+				color: #c9d8f4;
+			}
+			.note b {
+				color: var(--blue);
+			}
+			footer {
+				margin-top: 20px;
+				color: var(--muted);
+				font-size: 11px;
+			}
+			footer code {
+				color: var(--violet);
+			}
+
+			@media (max-width: 900px) {
+				.summary,
+				.runtime-grid,
+				.ops-layout {
+					grid-template-columns: 1fr;
+				}
+				.ops-layout {
+					min-height: 0;
+				}
+				.ops-list {
+					max-height: 310px;
+				}
+				.layer {
+					grid-template-columns: 1fr;
+				}
+				.connector {
+					margin-left: 50%;
+				}
+				.flow-grid {
+					grid-template-columns: 1fr;
+				}
+				.arrow {
+					transform: rotate(90deg);
+					min-height: 24px;
+				}
+				.cache-path {
+					grid-template-columns: 1fr;
+				}
+				.journey-stage {
+					grid-template-columns: 82px 28px minmax(0, 1fr);
+				}
+				.journey-phase b {
+					font-size: 10px;
+				}
+				.journey-parts {
+					grid-template-columns: 1fr;
+				}
+				.journey-part + .journey-part {
+					padding: 11px 0 0;
+					border-top: 1px solid var(--line);
+					border-left: 0;
+				}
+			}
+			@media (max-width: 560px) {
+				.shell {
+					width: min(100% - 20px, 1180px);
+					padding-top: 24px;
+				}
+				.tabs {
+					width: 100%;
+				}
+				.frame {
+					padding: 13px;
+				}
+				.frame-head {
+					display: block;
+				}
+				.frame-head p {
+					margin-top: 4px;
+				}
+				.ops-toolbar {
+					align-items: stretch;
+					flex-direction: column;
+				}
+				.ops-filter {
+					overflow-x: auto;
+				}
+				.op-details-grid {
+					grid-template-columns: 1fr;
+				}
+				.journey-stage {
+					grid-template-columns: 28px minmax(0, 1fr);
+				}
+				.journey-phase {
+					grid-column: 2;
+					padding: 9px 0 0;
+					text-align: left;
+				}
+				.journey-phase span,
+				.journey-phase b {
+					display: inline;
+				}
+				.journey-phase b {
+					margin-left: 5px;
+				}
+				.journey-rail {
+					grid-column: 1;
+					grid-row: 1 / span 2;
+				}
+				.journey-card {
+					grid-column: 2;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<main class="shell">
+			<div class="eyebrow">HCCNA backend · current code shape</div>
+			<h1>Architecture, data flow, and runtime behavior</h1>
+			<p class="lede">
+				One Bun process exposes two servers. Hono and GraphQL Yoga remain transport shells;
+				request-scoped Effect programs resolve shared services from a single managed runtime.
+			</p>
+
+			<nav class="tabs" role="tablist" aria-label="Architecture views">
+				<button
+					class="tab"
+					role="tab"
+					aria-selected="true"
+					aria-controls="architecture"
+					data-view="architecture"
+				>
+					1 · Architecture
+				</button>
+				<button
+					class="tab"
+					role="tab"
+					aria-selected="false"
+					aria-controls="data-flow"
+					data-view="data-flow"
+				>
+					2 · Data flow
+				</button>
+				<button
+					class="tab"
+					role="tab"
+					aria-selected="false"
+					aria-controls="runtime-behavior"
+					data-view="runtime-behavior"
+				>
+					3 · Runtime behavior
+				</button>
+				<button
+					class="tab"
+					role="tab"
+					aria-selected="false"
+					aria-controls="operation-flows"
+					data-view="operation-flows"
+				>
+					4 · Every request
+				</button>
+			</nav>
+
+			<section class="view active" id="architecture" role="tabpanel">
+				<div class="summary">
+					<div class="metric key">
+						<strong>Shared Effect runtime</strong
+						><span
+							>GraphQL and REST reuse the same <code>AppLayer</code> and memoized service
+							instances.</span
+						>
+					</div>
+					<div class="metric">
+						<strong>Two listening servers</strong
+						><span>API traffic plus an isolated metrics scrape endpoint.</span>
+					</div>
+					<div class="metric">
+						<strong>Effect-first migration</strong
+						><span>Thin transports; behavior moves behind typed services.</span>
+					</div>
+				</div>
+
+				<div class="frame">
+					<div class="frame-head">
+						<h2>System layers</h2>
+						<p>Dependencies flow downward; calls return upward.</p>
+					</div>
+					<div class="architecture">
+						<div class="layer clients">
+							<div class="layer-label"><b>Clients</b><small>outside process</small></div>
+							<div class="nodes">
+								<div class="node"><b>Mobile app</b><small>GraphQL + REST</small></div>
+								<div class="node">
+									<b>Web / operators</b><small>GraphiQL · OpenAPI · health</small>
+								</div>
+								<div class="node"><b>Prometheus</b><small>scrapes :9184/metrics</small></div>
+							</div>
+						</div>
+						<div class="connector"></div>
+						<div class="layer transport">
+							<div class="layer-label"><b>HTTP shell</b><small>routing + policy</small></div>
+							<div class="nodes">
+								<div class="node"><b>Bun API server</b><small>src/api.ts</small></div>
+								<div class="node">
+									<b>Hono middleware</b><small>request id · logs · timeout · CORS</small>
+								</div>
+								<div class="node"><b>GraphQL Yoga + Pothos</b><small>/graphql</small></div>
+								<div class="node"><b>Effect HttpApi</b><small>/v1/*</small></div>
+								<div class="node">
+									<b>Health / docs</b><small>/healthz · /readyz · /openapi.json</small>
+								</div>
+							</div>
+						</div>
+						<div class="connector"></div>
+						<div class="layer runtime">
+							<div class="layer-label"><b>Execution seam</b><small>request scope</small></div>
+							<div class="nodes">
+								<div class="node">
+									<b>GraphQL context</b><small>auth · Statsig · loaders · ctx.effect</small>
+								</div>
+								<div class="node">
+									<b>RequestContext</b><small>request · trace · auth · abort signal</small>
+								</div>
+								<div class="node"><b>ManagedRuntime</b><small>one memoized AppLayer</small></div>
+								<div class="node">
+									<b>Observability</b><small>Sentry · OTEL · Prometheus · Pino</small>
+								</div>
+							</div>
+						</div>
+						<div class="connector"></div>
+						<div class="layer domain">
+							<div class="layer-label"><b>Capabilities</b><small>application behavior</small></div>
+							<div class="nodes">
+								<div class="node">
+									<b>Attendance export</b><small>snapshots · CSV/PDF · storage</small>
+								</div>
+								<div class="node">
+									<b>CMS + Scripture</b><small>home · events · VOD · WOA</small>
+								</div>
+								<div class="node">
+									<b>User profile</b><small>onboarding · updates · push</small>
+								</div>
+								<div class="node"><b>Giving</b><small>history · summaries</small></div>
+								<div class="node"><b>Streaming</b><small>mapping · ACL · authorization</small></div>
+							</div>
+						</div>
+						<div class="connector"></div>
+						<div class="layer platform">
+							<div class="layer-label">
+								<b>Platform services</b><small>in-process adapters</small>
+							</div>
+							<div class="nodes">
+								<div class="node"><b>Drizzle service</b><small>Postgres access</small></div>
+								<div class="node"><b>Two-tier cache</b><small>LRU → Redis → loader</small></div>
+								<div class="node">
+									<b>Firebase services</b><small>auth · app check · messaging</small>
+								</div>
+								<div class="node">
+									<b>Integration services</b><small>narrow external clients</small>
+								</div>
+							</div>
+						</div>
+						<div class="connector"></div>
+						<div class="layer external">
+							<div class="layer-label">
+								<b>Systems of record</b><small>network / storage</small>
+							</div>
+							<div class="nodes">
+								<div class="node"><b>Postgres</b><small>Drizzle schemas</small></div>
+								<div class="node"><b>Redis</b><small>shared cache + rate limit</small></div>
+								<div class="node"><b>Firebase</b><small>auth · Firestore · messaging</small></div>
+								<div class="node"><b>Strapi CMS</b><small>content</small></div>
+								<div class="node">
+									<b>CCB</b><small>people · groups · attendance · giving</small>
+								</div>
+								<div class="node">
+									<b>Castr / Mail / Storage</b><small>streaming · email · exports</small>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="note">
+					<b>Ownership rule:</b> transport modules validate and translate. Effect services
+					coordinate business behavior. Platform services own external I/O.
+				</div>
+			</section>
+
+			<section class="view" id="data-flow" role="tabpanel" hidden>
+				<div class="summary">
+					<div class="metric key">
+						<strong>Representative flow</strong
+						><span>A signed-in GraphQL attendance export request.</span>
+					</div>
+					<div class="metric">
+						<strong>Request-scoped context</strong
+						><span>Identity, trace correlation, client IP, and cancellation travel together.</span>
+					</div>
+					<div class="metric">
+						<strong>Cache-aware I/O</strong
+						><span>Local LRU first, Redis second, source loader last.</span>
+					</div>
+				</div>
+
+				<div class="frame">
+					<div class="frame-head">
+						<h2>GraphQL request → export result</h2>
+						<p>Example: <code>exportEventAttendancePdf</code></p>
+					</div>
+					<div class="flow-grid">
+						<div class="flow-col">
+							<div class="stage">
+								<span class="step">1 · enter</span><b>Hono middleware</b>
+								<p>Add request ID, logs, timeout, metrics, CORS and compression.</p>
+							</div>
+							<div class="stage">
+								<span class="step">2 · gate</span><b>GraphQL endpoint policy</b>
+								<p>Rate limit and Firebase App Check run before Yoga.</p>
+							</div>
+						</div>
+						<div class="arrow">→</div>
+						<div class="flow-col">
+							<div class="stage">
+								<span class="step">3 · interpret</span><b>Yoga plugin chain</b>
+								<p>
+									Operation name, allowlist, complexity, APQ, logging, Sentry and response cache.
+								</p>
+							</div>
+							<div class="stage">
+								<span class="step">4 · scope</span><b>Create GraphQL context</b>
+								<p>Authenticate, build Statsig user, create loaders and <code>ctx.effect</code>.</p>
+							</div>
+						</div>
+						<div class="arrow">→</div>
+						<div class="flow-col">
+							<div class="stage">
+								<span class="step">5 · authorize</span><b>Pothos resolver</b>
+								<p>Apply auth scope and coordinator/allowlist checks; normalize input.</p>
+							</div>
+							<div class="stage">
+								<span class="step">6 · execute</span><b>AttendanceExportService</b>
+								<p>Load snapshot, compose CSV/PDF, persist metadata, publish export URL.</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="branch">
+						<div class="branch-title">Snapshot/cache branch inside the service</div>
+						<div class="cache-path">
+							<div class="cache-box">Versioned cache key</div>
+							<div class="cache-box hit">LRU hit<br />return immediately</div>
+							<div class="cache-box hit">Redis hit<br />warm LRU</div>
+							<div class="cache-box miss">Miss<br />load CCB / Postgres</div>
+							<div class="cache-box">Write Redis + LRU<br />return snapshot</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="frame">
+					<div class="frame-head">
+						<h2>Sibling REST path</h2>
+						<p>Same services, different transport adapter.</p>
+					</div>
+					<pre class="calltree"><span class="blue">POST /v1/…</span>
+  Hono <span class="violet">registerVersionedRoutes</span>
+    Effect HttpApi web handler
+      RequestContext from raw Request
+        route group handler
+          <span class="green">AppLayer service</span>
+            platform adapter
+              external system
+
+<span class="amber">Key difference:</span> REST uses Effect HttpApi directly; GraphQL exposes a request-scoped <span class="violet">ctx.effect</span> bridge.</pre>
+				</div>
+				<div class="note">
+					<b>Result path:</b> typed service failures are translated at the transport boundary into
+					stable GraphQL errors or HTTP responses; defects are captured by Sentry and structured
+					logs.
+				</div>
+			</section>
+
+			<section class="view" id="runtime-behavior" role="tabpanel" hidden>
+				<div class="summary">
+					<div class="metric key">
+						<strong>Scoped lifecycle</strong
+						><span>Servers and Statsig are acquired once and released in reverse order.</span>
+					</div>
+					<div class="metric">
+						<strong>Fail-fast warm-up</strong
+						><span>The v1 HttpApi layer builds before the API starts accepting traffic.</span>
+					</div>
+					<div class="metric">
+						<strong>Cooperative cancellation</strong
+						><span>Request abort and timeout signals reach Effect execution.</span>
+					</div>
+				</div>
+
+				<div class="runtime-grid">
+					<div class="frame">
+						<div class="frame-head">
+							<h2>Process lifecycle</h2>
+							<p><code>src/index.ts → Main</code></p>
+						</div>
+						<div class="timeline">
+							<div class="event">
+								<span class="dot"></span><b>Instrument process</b>
+								<p>Sentry / telemetry initialize before application imports.</p>
+							</div>
+							<div class="event">
+								<span class="dot"></span><b>Build managed runtime</b>
+								<p>
+									<code>AppLayer</code> composes configuration, infrastructure, integrations and
+									domain services.
+								</p>
+							</div>
+							<div class="event">
+								<span class="dot"></span><b>Fork shutdown listener</b>
+								<p>A scoped fiber waits for SIGINT or SIGTERM.</p>
+							</div>
+							<div class="event">
+								<span class="dot"></span><b>Acquire shared resources</b>
+								<p>Config → Statsig → metrics server → warm v1 handler → API server.</p>
+							</div>
+							<div class="event request">
+								<span class="dot"></span><b>Serve concurrent requests</b>
+								<p>Bun calls Hono; request programs reuse memoized service instances.</p>
+							</div>
+							<div class="event shutdown">
+								<span class="dot"></span><b>Release on shutdown</b>
+								<p>
+									Stop API, dispose v1 handler, stop metrics, shut down Statsig, dispose runtime.
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="frame">
+						<div class="frame-head">
+							<h2>Per-request call tree</h2>
+							<p>GraphQL path</p>
+						</div>
+						<pre class="calltree"><span class="blue">Bun.serve(fetch)</span>
+  Hono.fetch
+    middleware chain
+      /graphql handler
+        Yoga.handle
+          plugin pipeline
+          createGraphQLContext
+            authenticate
+            build RequestContext
+            create loaders
+            create <span class="violet">ctx.effect</span>
+          resolver
+            ctx.effect.runPromise(program)
+              <span class="green">managedRuntime.runPromise</span>
+                provide RequestContext
+                resolve memoized service
+                  domain workflow
+                    cache / database / integration
+          response cache
+        Hono response + access log</pre>
+						<div class="branch">
+							<div class="branch-title">Abort propagation</div>
+							<pre
+								class="calltree"
+							><span class="red">client disconnect</span> OR <span class="amber">application timeout</span>
+  AbortSignal.any(...)
+    Yoga request signal
+      RequestContext.signal
+        ManagedRuntime execution interrupted</pre>
+						</div>
+					</div>
+				</div>
+				<div class="note">
+					<b>Runtime invariant:</b> the v1 handler receives the managed runtime’s
+					<code>memoMap</code>, so REST and GraphQL share the same layer instances instead of
+					silently building parallel connection pools and clients.
+				</div>
+			</section>
+
+			<section class="view" id="operation-flows" role="tabpanel" hidden>
+				<div class="summary">
+					<div class="metric key">
+						<strong>51 request surfaces</strong
+						><span>10 HTTP routes · 22 GraphQL queries · 19 GraphQL mutations.</span>
+					</div>
+					<div class="metric">
+						<strong>Searchable ownership</strong
+						><span>Filter by name, domain, source file, service, system, or auth model.</span>
+					</div>
+					<div class="metric">
+						<strong>End-to-end flow</strong
+						><span>Actor → transport → gates → handler → service → I/O → response.</span>
+					</div>
+				</div>
+
+				<div class="frame">
+					<div class="frame-head">
+						<h2>Operation explorer</h2>
+						<p>Every concrete route and root GraphQL field in the current schema.</p>
+					</div>
+					<div class="ops-toolbar">
+						<input
+							class="ops-search"
+							id="ops-search"
+							type="search"
+							placeholder="Search operations, services, systems…"
+							aria-label="Search operation flows"
+						/>
+						<div class="ops-filter" role="group" aria-label="Filter operation kind">
+							<button class="active" data-kind="all">All</button>
+							<button data-kind="route">Routes</button>
+							<button data-kind="query">Queries</button>
+							<button data-kind="mutation">Mutations</button>
+						</div>
+						<span class="ops-count" id="ops-count"></span>
+					</div>
+					<div class="ops-layout">
+						<div class="ops-list" id="ops-list" aria-label="Operations"></div>
+						<article class="op-detail" id="op-detail" aria-live="polite"></article>
+					</div>
+				</div>
+				<div class="note">
+					<b>Scope:</b> “every query/mutation” means every root field in
+					<code>schema.graphql</code>. Nested fields under <code>Query.user</code> are called out
+					inside that operation’s flow because their work is selected by the client’s field set.
+				</div>
+			</section>
+
+			<footer>
+				Derived from <code>src/index.ts</code>, <code>src/effect/Main.ts</code>,
+				<code>src/effect/Runtime.ts</code>, <code>src/app.ts</code>,
+				<code>src/routes/graphql.ts</code>, <code>src/routes/v1/index.ts</code>,
+				<code>src/graphql/context.ts</code>, and the attendance export service. Snapshot:
+				2026-08-21.
+			</footer>
+		</main>
+
+		<script>
+			const op = (
+				kind,
+				name,
+				domain,
+				actor,
+				auth,
+				source,
+				handler,
+				services,
+				systems,
+				purpose,
+				response,
+				extra = {},
+			) => ({
+				kind,
+				name,
+				domain,
+				actor,
+				auth,
+				source,
+				handler,
+				services,
+				systems,
+				purpose,
+				response,
+				...extra,
+			});
+
+			const operations = [
+				// HTTP surfaces
+				op(
+					"route",
+					"GET /metrics",
+					"Observability",
+					"Prometheus scraper",
+					"Network-level access",
+					"src/app.ts",
+					"metricsApp combines the custom registry and Effect/OTEL metric reader",
+					"prometheusRegistry · effectMetricReader",
+					"In-process metric registries",
+					"Expose application and runtime measurements from the dedicated metrics server.",
+					"Prometheus text exposition",
+					{
+						transport: "Bun metrics server on the configured metrics port",
+						gates: "No API Hono middleware; isolated metrics app",
+					},
+				),
+				op(
+					"route",
+					"GET /",
+					"Platform",
+					"Client or operator",
+					"Public",
+					"src/app.ts",
+					"Inline Hono root handler",
+					"None",
+					"None",
+					"Confirm that the API HTTP shell is responding.",
+					"200 JSON { ok: true }",
+				),
+				op(
+					"route",
+					"GET /healthz",
+					"Operations",
+					"Container/orchestrator probe",
+					"Public",
+					"src/app.ts",
+					"Inline Hono liveness handler",
+					"None",
+					"None",
+					"Report process liveness without checking dependencies.",
+					"200 text OK",
+				),
+				op(
+					"route",
+					"GET /readyz",
+					"Operations",
+					"Container/orchestrator probe",
+					"Public",
+					"src/app.ts",
+					"runHonoEffect executes the readiness program",
+					"OperationalReadinessService · RedisService · DbHealthService",
+					"Redis · Postgres",
+					"Probe Redis and Postgres concurrently with per-dependency timeouts.",
+					"200 OK or sanitized 503 dependency list",
+				),
+				op(
+					"route",
+					"GET /reference",
+					"Documentation",
+					"Developer",
+					"Public; config-gated",
+					"src/app.ts",
+					"Scalar API reference handler",
+					"None",
+					"GET /openapi.json",
+					"Render interactive API documentation when showApiReference is enabled.",
+					"HTML API reference",
+				),
+				op(
+					"route",
+					"GET /openapi.json",
+					"Documentation",
+					"Developer or tooling",
+					"Public",
+					"src/app.ts · src/routes/v1/api.ts",
+					"Merge Hono and Effect HttpApi specifications",
+					"V1Api OpenApi generator",
+					"In-process route/schema metadata",
+					"Publish one contract covering the HTTP shell and both concrete v1 endpoints.",
+					"OpenAPI 3 JSON",
+				),
+				op(
+					"route",
+					"GET|POST /graphql",
+					"GraphQL transport",
+					"Mobile/web client",
+					"Operation-dependent",
+					"src/routes/graphql.ts",
+					"GraphQL Yoga handler and plugin pipeline",
+					"GraphQLRateLimitStoreService · GraphQLResponseCacheService",
+					"Redis/LRU · Sentry · Prometheus · Stellate",
+					"Apply endpoint policy, construct the GraphQL context, and dispatch a named root field.",
+					"GraphQL response, stream, or transport error",
+					{ gates: "Rate limit → Firebase App Check → APQ/name/allowlist/complexity plugins" },
+				),
+				op(
+					"route",
+					"ALL /v1/* (dispatcher)",
+					"REST transport",
+					"REST client",
+					"Endpoint-dependent",
+					"src/routes/index.ts · src/routes/v1/index.ts",
+					"Effect HttpApi web handler using managedRuntime.memoMap",
+					"AppLayer · RequestContext",
+					"Shared Effect service instances",
+					"Forward versioned requests into the Effect HttpApi router without building a second runtime.",
+					"HttpApi Response",
+					{ gates: "Hono middleware → HttpApi decode → defect reporter" },
+				),
+				op(
+					"route",
+					"GET /v1/attendance-exports/:exportKey",
+					"Attendance",
+					"Holder of private export link",
+					"Download token hash",
+					"src/routes/v1/attendance-exports.ts",
+					"Load export metadata, timing-safe token check, download object",
+					"DrizzleService · ExportStorage helpers",
+					"Postgres · Google Cloud Storage",
+					"Serve a previously generated private CSV/PDF export.",
+					"CSV/PDF bytes with private caching and attachment headers",
+				),
+
+				// GraphQL queries
+				op(
+					"query",
+					"campuses",
+					"CMS",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/campuses.ts",
+					"Map campus, pastor, giving and stream fields",
+					"Strapi DataLoader · StrapiService",
+					"Strapi · request DataLoader/cache",
+					"Fetch the configured campus directory and normalize presentation fields.",
+					"Campuses object",
+				),
+				op(
+					"query",
+					"castrStream",
+					"Streaming",
+					"Signed-in stream coordinator",
+					"signedIn + per-campus coordinator ACL",
+					"src/graphql/schema/castr/stream.ts",
+					"Resolve fresh Strapi ACL, load projection, hide excluded platforms",
+					"StrapiStreamAclProvider · StreamProjectionStore",
+					"Strapi · Firestore",
+					"Return the caller-authorized view of one projected Castr stream.",
+					"CastrStream or null",
+				),
+				op(
+					"query",
+					"ccbForms",
+					"CCB",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/core.ts",
+					"Load active public forms through legacy DataLoader",
+					"CCB forms DataLoader",
+					"In-memory LRU · Redis · CCB Forms API",
+					"List active publicly visible CCB forms.",
+					"List of CCBForm",
+				),
+				op(
+					"query",
+					"ccbFormsV2",
+					"CCB",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/core.ts",
+					"Load forms and translate missing/fetch outcomes into a union",
+					"CCB forms DataLoader",
+					"In-memory LRU · Redis · CCB Forms API",
+					"Expose the same forms with typed success/not-found/fetch results.",
+					"CCBFormsResult union",
+				),
+				op(
+					"query",
+					"core",
+					"CMS",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/core.ts",
+					"Run CMSService.getCoreSettings",
+					"CMSService",
+					"LRU → Redis → Postgres",
+					"Load core navigation/settings; Statsig may sort selected links.",
+					"Core settings object",
+				),
+				op(
+					"query",
+					"eventAttendanceByCcb",
+					"Attendance",
+					"Signed-in event coordinator",
+					"signedIn + coordinator ownership + bulk limit",
+					"src/graphql/schema/event/attendance.ts",
+					"Expand requested events to authorized groups and perform lookup",
+					"AttendanceExportService · StrapiService",
+					"Strapi · LRU/Redis · Postgres · CCB",
+					"Return attendance status for up to 50 requested CCB Individuals.",
+					"List of lookup results",
+				),
+				op(
+					"query",
+					"eventAttendees",
+					"Attendance",
+					"Signed-in event coordinator",
+					"signedIn + coordinator ownership",
+					"src/graphql/schema/event/attendance.ts",
+					"Authorize event then load its attendance snapshot",
+					"AttendanceExportService · StrapiService",
+					"Strapi · LRU/Redis · Postgres · CCB",
+					"Return the full roster and attendance state for one occurrence.",
+					"EventAttendanceSnapshot",
+				),
+				op(
+					"query",
+					"eventWithAttendance",
+					"Attendance",
+					"Signed-in event coordinator",
+					"signedIn + group coordinator check",
+					"src/graphql/schema/event/attendance.ts",
+					"Load group participants and the current attendance profile",
+					"CCBService · StrapiService",
+					"Strapi · CCB",
+					"Combine the attending group roster with recorded attendance for the current church week.",
+					"AttendandedEvent or null",
+				),
+				op(
+					"query",
+					"events",
+					"CMS",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/events.ts",
+					"Build Strapi filters, calculate recurrence, normalize events",
+					"Strapi DataLoader · StrapiService",
+					"Strapi · request DataLoader/cache",
+					"List or select CMS events with their next occurrence.",
+					"List of Event",
+				),
+				op(
+					"query",
+					"exportAttendance",
+					"Attendance",
+					"Allowlisted signed-in exporter",
+					"signedIn + Statsig email allowlist",
+					"src/graphql/schema/event/attendance.ts",
+					"Load and deduplicate CMS attendance-event definitions",
+					"StrapiService",
+					"Strapi",
+					"List attendance events available to the bulk export workflow.",
+					"ExportAttendanceResult or null",
+				),
+				op(
+					"query",
+					"getPreviousFiveYearsGivingV2",
+					"Giving",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/donationsV2.ts",
+					"Load User Profile linkage then request five giving years",
+					"DrizzleService · GivingService",
+					"Postgres · LRU · Redis · CCB",
+					"Return five years of Giving using the layered donation cache.",
+					"List of yearly donation summaries",
+				),
+				op(
+					"query",
+					"home",
+					"CMS",
+					"Authorized app client",
+					"authorized",
+					"src/graphql/schema/cms/home.ts",
+					"Run CMSService.getHomeData and shape the home payload",
+					"CMSService",
+					"LRU → Redis → Postgres → Strapi fallback",
+					"Load featured and upcoming home-page content.",
+					"Home object",
+				),
+				op(
+					"query",
+					"kidsEventAttendance",
+					"Attendance",
+					"Signed-in event coordinator",
+					"signedIn",
+					"src/graphql/schema/event/attendance.ts",
+					"Load User Profile and filter CMS events by coordinator email",
+					"Firebase user DataLoader · StrapiService",
+					"Firestore · Strapi",
+					"List Attendance Events coordinated by the current User.",
+					"List of EventAttendance or null",
+				),
+				op(
+					"query",
+					"myGivingHistory",
+					"Giving",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/donationsV2.ts",
+					"Load linked User Profile and resolve Giving with typed outcomes",
+					"DrizzleService · GivingService",
+					"Postgres · LRU · Redis · CCB",
+					"Return the current User's Giving history with explicit not-found/fetch cases.",
+					"MyGivingHistoryResult union",
+				),
+				op(
+					"query",
+					"pingCastrStream",
+					"Streaming",
+					"Cloud Scheduler/internal caller",
+					"googleInternal",
+					"src/graphql/schema/castr/stream.ts",
+					"Queue a detached stream-mapping refresh and return immediately",
+					"StreamMappingService",
+					"Castr API · Firestore",
+					"Refresh projected streaming state asynchronously.",
+					"Queued success/error union",
+				),
+				op(
+					"query",
+					"profile",
+					"User Profile",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/profile.ts",
+					"Load Postgres profile; optionally launch detached name repair",
+					"ProfileService · optional GivingService/WOA loaders for selected nested fields",
+					"LRU · Redis · Postgres · optional CCB/Firestore",
+					"Return the canonical User Profile and resolve only selected computed fields.",
+					"UserDBProfile or null",
+				),
+				op(
+					"query",
+					"sermons",
+					"CMS",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/sermon.ts",
+					"Validate Relay args, query Strapi, decode and paginate",
+					"Strapi DataLoader · StrapiService",
+					"Strapi · request DataLoader/cache",
+					"Fetch CMS sermons with cursor-like pagination and metadata.",
+					"SermonConnection",
+				),
+				op(
+					"query",
+					"thoughtOfGod",
+					"CMS",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/cms/thoughtOfGod.ts",
+					"Load and normalize article/video content",
+					"Strapi DataLoader · StrapiService",
+					"Strapi · request DataLoader/cache",
+					"Return the Thought of God landing-page content.",
+					"ThoughtOfGodPage",
+				),
+				op(
+					"query",
+					"user",
+					"User",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/index.ts",
+					"Create a request facade; selected nested fields perform the work",
+					"ProfileService · CCBService · Firebase/WOA DataLoaders",
+					"LRU · Redis · Postgres · Firestore · CCB",
+					"Resolve profile, legacy donations, five-year giving, Word of Activation, or deprecated attendance according to the selection set.",
+					"Non-null User facade",
+					{
+						note: "The root itself does no I/O. Nested field selection controls the downstream branches.",
+					},
+				),
+				op(
+					"query",
+					"verseOfTheDay",
+					"Scripture",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/scriptures/vod.ts",
+					"Run VodService.getDailyVerse (deprecated response contract)",
+					"VodService",
+					"LRU → Redis → Postgres → Firebase fallback",
+					"Load today's Scripture using the legacy nullable/error behavior.",
+					"Scripture",
+				),
+				op(
+					"query",
+					"verseOfTheDayV2",
+					"Scripture",
+					"App visitor",
+					"Public",
+					"src/graphql/schema/scriptures/vod.ts",
+					"Run the same service and translate failures into union members",
+					"VodService",
+					"LRU → Redis → Postgres → Firebase fallback",
+					"Load today's Scripture with typed fetch/not-found outcomes.",
+					"VerseOfTheDayResult union",
+				),
+
+				// GraphQL mutations
+				op(
+					"mutation",
+					"cmsWebhookUpdate",
+					"CMS",
+					"Strapi webhook caller",
+					"authorized",
+					"src/graphql/schema/cms/webhookUpdate.ts",
+					"Validate event/UID, refresh relevant snapshot, invalidate response cache",
+					"CMSService · GraphQL response cache",
+					"Strapi · Postgres · LRU · Redis · GraphQL cache/Stellate",
+					"Synchronize supported CMS content changes into backend-owned snapshots.",
+					"Success/message object",
+				),
+				op(
+					"mutation",
+					"createEmailLink",
+					"Authentication",
+					"Authenticated app client",
+					"clientAuth",
+					"src/graphql/schema/user/update-user.ts",
+					"Generate a Firebase email verification link",
+					"FirebaseAuthService/Firebase Admin helpers",
+					"Firebase Auth",
+					"Create an app-handled email verification link.",
+					"CreateEmailLinkResult",
+				),
+				op(
+					"mutation",
+					"createEventAttendance",
+					"Attendance",
+					"Signed-in event coordinator",
+					"signedIn + coordinator ownership",
+					"src/graphql/schema/event/attendance.ts",
+					"Authorize from CMS mapping then write current occurrence attendance",
+					"StrapiService · CCBService",
+					"Strapi · CCB",
+					"Record attendee IDs, topic and notes against the current church-week occurrence.",
+					"Success/message object",
+				),
+				op(
+					"mutation",
+					"createSignInCode",
+					"Authentication",
+					"Authenticated app client",
+					"clientAuth",
+					"src/graphql/schema/user/update-user.ts",
+					"Generate code, store attempt state, send templated email",
+					"FirebaseAdminService · MailService",
+					"Firestore · SendGrid/mail provider",
+					"Begin passwordless sign-in with a time-limited code.",
+					"Code result with expiration",
+				),
+				op(
+					"mutation",
+					"ensureUserProfile",
+					"Onboarding",
+					"Signed-in User",
+					"signedIn + verified Firebase identity",
+					"src/graphql/schema/user/ensure-user-profile.ts",
+					"Idempotently reconcile identity and directory enrichment",
+					"ensureUserProfile effect · CCBService · Drizzle/Firebase services",
+					"Firebase Auth/Firestore · Postgres · CCB",
+					"Provision or repair the User Profile safely on every sign-in.",
+					"Typed provisioning outcome union",
+				),
+				op(
+					"mutation",
+					"exportEventAttendancePdf",
+					"Attendance",
+					"Allowlisted signed-in exporter",
+					"signedIn + Statsig allowlist + event map",
+					"src/graphql/schema/event/attendance.ts",
+					"Authorize up to 50 events and generate combined export",
+					"AttendanceExportService · StrapiService",
+					"Strapi · CCB · LRU/Redis · Postgres · GCS",
+					"Generate or reuse a private multi-event CSV/PDF attendance export.",
+					"AttendancePdfExportResult with private URL",
+				),
+				op(
+					"mutation",
+					"exportEventAttendeesPdf",
+					"Attendance",
+					"Signed-in event coordinator",
+					"signedIn + coordinator ownership",
+					"src/graphql/schema/event/attendance.ts",
+					"Authorize one event, snapshot its roster, generate export",
+					"AttendanceExportService · StrapiService",
+					"Strapi · CCB · LRU/Redis · Postgres · GCS",
+					"Generate or reuse a private single-event CSV/PDF export.",
+					"AttendancePdfExportResult with private URL",
+				),
+				op(
+					"mutation",
+					"postDeletionCleanup",
+					"Account deletion",
+					"Internal identity workflow",
+					"googleInternal",
+					"src/graphql/schema/user/update-user.ts",
+					"Verify Auth user is gone, then remove backend Firestore data",
+					"Firebase Admin cleanup effects",
+					"Firebase Auth · Firestore",
+					"Finish backend cleanup after an external Firebase Auth deletion.",
+					"UpdateUserProfile success/message",
+				),
+				op(
+					"mutation",
+					"registerPushToken",
+					"Push notifications",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/register-push-token.ts",
+					"Replay-safe token upsert and exact topic reconciliation",
+					"PushTokenService · FirebaseAdminService",
+					"Firestore · Firebase Cloud Messaging",
+					"Bind an FCM token to the authenticated User and desired channels.",
+					"Registration result and final topics",
+				),
+				op(
+					"mutation",
+					"requestDeleteAccount",
+					"Account deletion",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/update-user.ts",
+					"Generate delete code, store attempt state, send email",
+					"FirebaseAdminService · MailService",
+					"Firestore · SendGrid/mail provider",
+					"Begin the authenticated account-deletion confirmation flow.",
+					"Code result with expiration",
+				),
+				op(
+					"mutation",
+					"sendAnnouncement",
+					"Push notifications",
+					"Authorized publisher",
+					"authorized",
+					"src/graphql/schema/user/send-broadcast.ts",
+					"Validate topic and publish notification message",
+					"FirebaseAdminService",
+					"Firebase Cloud Messaging",
+					"Send an announcement to the default or requested valid topic.",
+					"Success/message object",
+				),
+				op(
+					"mutation",
+					"sendBroadcast",
+					"Push notifications",
+					"Authorized app client",
+					"authorized",
+					"src/graphql/schema/user/send-broadcast.ts",
+					"Legacy-named path that registers/reconciles a push token",
+					"PushTokenService",
+					"Firestore · Firebase Cloud Messaging",
+					"Register an anonymous/current-user token without trusting client-supplied ownership.",
+					"Success/message object",
+				),
+				op(
+					"mutation",
+					"setVerseOfTheDay",
+					"Scripture",
+					"Internal scheduler",
+					"googleInternal",
+					"src/graphql/schema/scriptures/vod.ts",
+					"Select verse, publish Firebase, mirror Postgres, clear caches",
+					"VodService",
+					"Firebase · Postgres · LRU · Redis · GraphQL/Stellate caches",
+					"Rotate today's Scripture with rollback if SQL persistence fails.",
+					"Typed set result union",
+				),
+				op(
+					"mutation",
+					"updateCastrStream",
+					"Streaming",
+					"Signed-in stream coordinator",
+					"signedIn + stream/platform ACL",
+					"src/graphql/schema/castr/stream.ts",
+					"Load projection, authorize diff, patch Castr, update projection/live status",
+					"StreamProjectionStore · StreamAuthorizationService · Castr helpers",
+					"Strapi ACL · Firestore · Castr API",
+					"Apply authorized metadata/platform changes to a live stream.",
+					"PingCastrStreamResponse",
+				),
+				op(
+					"mutation",
+					"updateUserProfile",
+					"User Profile",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/update-user.ts",
+					"Decode patch and update canonical/mirror records",
+					"UserProfileUpdateService · ProfileService",
+					"Postgres · Firestore · LRU · Redis",
+					"Update allowed User Profile fields and invalidate profile caches.",
+					"UpdateUserProfile success/message",
+				),
+				op(
+					"mutation",
+					"verifyDeleteAccountCode",
+					"Account deletion",
+					"Signed-in User",
+					"signedIn",
+					"src/graphql/schema/user/update-user.ts",
+					"Verify code/attempts, delete Firebase Auth account and Firestore user data",
+					"FirebaseAdminService · FirebaseAuthService",
+					"Firestore · Firebase Auth",
+					"Confirm and execute account deletion.",
+					"UpdateUserProfile success/message",
+				),
+				op(
+					"mutation",
+					"verifySignInCode",
+					"Authentication",
+					"Authenticated app client",
+					"clientAuth",
+					"src/graphql/schema/user/update-user.ts",
+					"Verify code, update attempt state, mint Firebase custom token",
+					"FirebaseAdminService · FirebaseAuthService",
+					"Firestore · Firebase Auth",
+					"Complete passwordless sign-in and return a client token.",
+					"VerifySignInCodeResult",
+				),
+				op(
+					"mutation",
+					"vodPushNotification",
+					"Scripture",
+					"Internal scheduler",
+					"googleInternal",
+					"src/graphql/schema/scriptures/vod.ts",
+					"Load today's verse and publish notification",
+					"VodService · FirebaseAdminService",
+					"Postgres/Firebase fallback · Firebase Cloud Messaging",
+					"Send the daily Scripture push notification.",
+					"Typed push result union",
+				),
+				op(
+					"mutation",
+					"wordOfActivationMonthly",
+					"Scripture",
+					"Internal scheduler",
+					"googleInternal",
+					"src/graphql/schema/scriptures/wordActivationMonthly.ts",
+					"Rotate subscriber assignments and email monthly recipients",
+					"WordOfActivationService · MailService",
+					"Primary/secondary Firestore · SendGrid/mail provider",
+					"Run the monthly Word of Activation batch workflow.",
+					"Summary or typed rotation error",
+				),
+			];
+
+			const opsList = document.querySelector("#ops-list");
+			const opDetail = document.querySelector("#op-detail");
+			const opsSearch = document.querySelector("#ops-search");
+			const opsCount = document.querySelector("#ops-count");
+			const filterButtons = [...document.querySelectorAll(".ops-filter button")];
+			let activeKind = "all";
+			let selectedOperation = operations[0];
+
+			const escapeHtml = (value) =>
+				String(value)
+					.replaceAll("&", "&amp;")
+					.replaceAll("<", "&lt;")
+					.replaceAll(">", "&gt;")
+					.replaceAll('"', "&quot;")
+					.replaceAll("'", "&#039;");
+
+			function getFilteredOperations() {
+				const term = opsSearch.value.trim().toLowerCase();
+				return operations.filter((item) => {
+					if (activeKind !== "all" && item.kind !== activeKind) return false;
+					if (!term) return true;
+					return Object.values(item).join(" ").toLowerCase().includes(term);
+				});
+			}
+
+			function renderOperationDetail(item) {
+				if (!item) {
+					opDetail.innerHTML = '<div class="empty">No operation matches this filter.</div>';
+					return;
+				}
+
+				const isGraphQL = item.kind !== "route";
+				const stages = isGraphQL
+					? [
+							{
+								phase: "Request",
+								label: "Caller",
+								tone: "caller",
+								parts: [[item.actor, `Sends the named ${item.kind} through GET/POST /graphql.`]],
+							},
+							{
+								phase: "Policy",
+								label: "Transport + context",
+								tone: "policy",
+								parts: [
+									[
+										"Hono /graphql",
+										"Adds request identity, logging and timeout; applies rate limiting and Firebase App Check.",
+									],
+									[
+										"Yoga + GraphQL context",
+										`Parses and validates the operation, runs cache/complexity policy, then authenticates as ${item.auth}.`,
+									],
+								],
+							},
+							{
+								phase: "Application",
+								label: "Resolver + Effect",
+								tone: "application",
+								parts: [
+									[item.handler, item.purpose],
+									[
+										item.services,
+										"Resolves shared AppLayer services through the request-scoped ctx.effect runner.",
+									],
+								],
+							},
+							{
+								phase: "I/O",
+								label: "Downstream",
+								tone: "io",
+								parts: [
+									[
+										item.systems,
+										"Reads, writes, caches, publishes, or calls upstream as required by this operation.",
+									],
+								],
+							},
+							{
+								phase: "Return",
+								label: "Client response",
+								tone: "return",
+								parts: [
+									[
+										item.response,
+										"Yoga serializes the result; response caching, metrics and access logging finish the request.",
+									],
+								],
+							},
+						]
+					: [
+							{
+								phase: "Request",
+								label: "Caller",
+								tone: "caller",
+								parts: [[item.actor, `Requests ${item.name}.`]],
+							},
+							{
+								phase: "Policy",
+								label: "Transport + gates",
+								tone: "policy",
+								parts: [
+									[
+										item.transport ?? "Bun API server + Hono",
+										item.transport
+											? "Accepts the request on its owning listener."
+											: "Applies metrics, compression, request identity, logs, timeout and CORS.",
+									],
+									[
+										item.gates ?? item.auth,
+										item.gates
+											? `Route authorization: ${item.auth}.`
+											: "Validates and authorizes at the route boundary.",
+									],
+								],
+							},
+							{
+								phase: "Application",
+								label: "Handler + Effect",
+								tone: "application",
+								parts: [
+									[item.handler, item.purpose],
+									[item.services, "Resolves services from the shared runtime when required."],
+								],
+							},
+							{
+								phase: "I/O",
+								label: "Downstream",
+								tone: "io",
+								parts: [[item.systems, "Performs the route’s downstream work."]],
+							},
+							{
+								phase: "Return",
+								label: "Wire response",
+								tone: "return",
+								parts: [[item.response, "Returns the final HTTP response."]],
+							},
+						];
+
+				opDetail.innerHTML = `
+        <span class="op-kind">${escapeHtml(item.kind)}</span>
+        <h3>${escapeHtml(item.name)}</h3>
+        <p class="op-purpose">${escapeHtml(item.purpose)}</p>
+        <div class="op-meta">
+          <span>${escapeHtml(item.domain)}</span>
+          <span>Actor: ${escapeHtml(item.actor)}</span>
+          <span>Auth: ${escapeHtml(item.auth)}</span>
+        </div>
+        <div class="journey">
+          ${stages
+						.map(
+							(stage, index) => `
+            <div class="journey-stage ${escapeHtml(stage.tone)}">
+              <div class="journey-phase"><span>${escapeHtml(stage.phase)}</span><b>${escapeHtml(stage.label)}</b></div>
+              <div class="journey-rail"><span class="journey-dot">${index + 1}</span></div>
+              <div class="journey-card"><div class="journey-parts">
+                ${stage.parts.map(([title, body]) => `<div class="journey-part"><b>${escapeHtml(title)}</b><p>${escapeHtml(body)}</p></div>`).join("")}
+              </div></div>
+            </div>`,
+						)
+						.join("")}
+        </div>
+        <div class="op-details-grid">
+          <div class="op-detail-card"><b>Source owner</b><code>${escapeHtml(item.source)}</code></div>
+          <div class="op-detail-card"><b>Service boundary</b><span>${escapeHtml(item.services)}</span></div>
+          <div class="op-detail-card"><b>Downstream systems</b><span>${escapeHtml(item.systems)}</span></div>
+          <div class="op-detail-card"><b>Wire result</b><span>${escapeHtml(item.response)}</span></div>
+          ${item.note ? `<div class="op-detail-card" style="grid-column: 1 / -1"><b>Important branch</b><span>${escapeHtml(item.note)}</span></div>` : ""}
+        </div>`;
+			}
+
+			function renderOperations() {
+				const filtered = getFilteredOperations();
+				if (!filtered.includes(selectedOperation)) selectedOperation = filtered[0];
+				opsCount.textContent = `${filtered.length} / ${operations.length}`;
+				opsList.innerHTML = filtered.length
+					? filtered
+							.map(
+								(item) => `
+            <button class="op-item ${item === selectedOperation ? "active" : ""}" data-op="${escapeHtml(item.kind)}:${escapeHtml(item.name)}">
+              <span class="op-kind">${escapeHtml(item.kind)}</span><b>${escapeHtml(item.name)}</b>
+              <small>${escapeHtml(item.domain)} · ${escapeHtml(item.auth)}</small>
+            </button>`,
+							)
+							.join("")
+					: '<div class="empty">No matching operations.</div>';
+				renderOperationDetail(selectedOperation);
+			}
+
+			opsList.addEventListener("click", (event) => {
+				const button = event.target.closest(".op-item");
+				if (!button) return;
+				selectedOperation = operations.find(
+					(item) => `${item.kind}:${item.name}` === button.dataset.op,
+				);
+				renderOperations();
+			});
+			opsSearch.addEventListener("input", renderOperations);
+			for (const button of filterButtons) {
+				button.addEventListener("click", () => {
+					activeKind = button.dataset.kind;
+					for (const candidate of filterButtons)
+						candidate.classList.toggle("active", candidate === button);
+					renderOperations();
+				});
+			}
+			renderOperations();
+
+			const tabs = [...document.querySelectorAll('[role="tab"]')];
+			const views = [...document.querySelectorAll('[role="tabpanel"]')];
+
+			function activate(id, updateHash = true) {
+				const next = tabs.find((tab) => tab.dataset.view === id) ?? tabs[0];
+				for (const tab of tabs) tab.setAttribute("aria-selected", String(tab === next));
+				for (const view of views) {
+					const active = view.id === next.dataset.view;
+					view.classList.toggle("active", active);
+					view.hidden = !active;
+				}
+				if (updateHash) history.replaceState(null, "", `#${next.dataset.view}`);
+			}
+
+			for (const tab of tabs) {
+				tab.addEventListener("click", () => activate(tab.dataset.view));
+				tab.addEventListener("keydown", (event) => {
+					if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+					event.preventDefault();
+					const index = tabs.indexOf(tab);
+					const delta = event.key === "ArrowRight" ? 1 : -1;
+					const next = tabs[(index + delta + tabs.length) % tabs.length];
+					next.focus();
+					activate(next.dataset.view);
+				});
+			}
+
+			activate(location.hash.slice(1) || "architecture", false);
+		</script>
+	</body>
+</html>

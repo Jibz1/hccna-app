@@ -1,0 +1,31 @@
+name: React Doctor
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["apps/mobile/**"]
+  push:
+    branches: [main]
+    paths: ["apps/mobile/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+concurrency:
+  group: react-doctor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  react-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+      - uses: millionco/react-doctor@547e1e4ecdb70315d81a91ec3605701d58616ee2
+        with:
+          directory: apps/mobile
+          version: 0.7.4
