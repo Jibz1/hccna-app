@@ -119,7 +119,7 @@ with a fixed system user, so there is no per-user targeting. When the gate is of
 Statsig is unavailable, Rust forwards everything. Turning the gate off therefore makes the Rust
 service a pure pass-through within Statsig's update interval, with no redeploy. The gate is created
 before PR 1 is deployed and turned on once the forward path is verified. The benchmark harness
-needs it on, which `apps/server-rs/bench/RUNBOOK.md` will say.
+needs it on.
 
 ### Forwarding
 

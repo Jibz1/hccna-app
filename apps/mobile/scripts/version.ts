@@ -25,7 +25,7 @@ try {
       "1. Open a PR with native-version.js and merge it.",
       "2. iOS: bun run prebuild:release, then archive in Xcode.",
       "3. Android: bun run generate--android-native-build, then bun run android:bundle.",
-      "4. Record the release in ota-release.json (docs/ota-updates.md).",
+      "4. Record the release in ota-release.json.",
     ].join("\n"),
   );
 } catch (error) {

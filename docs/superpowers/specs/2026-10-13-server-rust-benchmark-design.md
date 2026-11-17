@@ -161,6 +161,8 @@ Known nondeterminism the correctness diff ignores: the `verseOfTheDayV2` fallbac
 
 ## 3. Benchmark harness (`apps/server-rs/bench/`)
 
+> The harness is not part of this repository; it ran against the production Railway services.
+
 - **Operation corpus.** `extract-operations.ts` (a dependency-free Bun script) reads the Relay
   artifacts in `apps/mobile/src/**/__generated__/*.graphql.ts` and writes the phase 1 operation texts
   to `operations.json`. Operation text is code, not data, so it is committed. Requests are sent the way

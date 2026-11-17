@@ -18,14 +18,14 @@ import { formatNativeVersionFile } from "./versioning";
 // The store release every fixture project starts from.
 export const storeVersion = { version: "2.1.0", androidVersionCode: 24 };
 export const hash = (value) => createHash("sha256").update(value).digest("hex");
-export const releaseValues = { MMKV_ENCRYPTION_KEY: "release-key" };
-export const releaseHashes = { MMKV_ENCRYPTION_KEY: hash("release-key") };
+const releaseValues = { MMKV_ENCRYPTION_KEY: "release-key" };
+const releaseHashes = { MMKV_ENCRYPTION_KEY: hash("release-key") };
 // The EAS production environment after a complete --sync-env.
-export const remoteValues = {
+const remoteValues = {
   ...releaseValues,
   MMKV_ENCRYPTION_KEY_REQUIRED: "true",
 };
-export const runtimes = { ios: "store-ios", android: "store-android" };
+const runtimes = { ios: "store-ios", android: "store-android" };
 export const bun = execFileSync(
   "bun",
   ["--no-env-file", "--print", "process.execPath"],
@@ -66,7 +66,6 @@ export function runFixture(args, options = {}) {
   for (const name of [
     "releaseEnv.ts",
     "generate-android-native-build.ts",
-    "publish-update.ts",
     "local-release.ts",
     "versioning.ts",
     "version.ts",
@@ -155,11 +154,7 @@ if (command === "npx" && args[0] === "sentry-expo-upload-sourcemaps" && process.
       bun,
       [
         "--no-env-file",
-        join(
-          scripts,
-          options.script ??
-            (options.localRelease ? "local-release.ts" : "publish-update.ts"),
-        ),
+        join(scripts, options.script ?? "local-release.ts"),
         ...args,
       ],
       {

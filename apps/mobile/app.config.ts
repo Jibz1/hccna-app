@@ -31,8 +31,8 @@ const IS_STORE_BUNDLE =
   DEV_ARGUMENT_INDEX >= 0 &&
   process.argv[DEV_ARGUMENT_INDEX + 1] === "false";
 const ANDROID_ADAPTIVE_ICON_BACKGROUND = "#2c225e";
-// `bun run update:publish` sets this for `eas update` only; native builds keep
-// the store version from native-version.js.
+// The OTA publisher sets this for `eas update` only; native builds keep the
+// store version from native-version.js.
 const OTA_VERSION = process.env.HCCNA_OTA_VERSION;
 const IS_NATIVE_BUILD = [
   "prebuild",
