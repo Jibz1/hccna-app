@@ -29,7 +29,7 @@ bunx turbo run typecheck lint test
 - Expo Device Hub starts automatically with the mobile dev server. Open the `Expo Device Hub` link in the terminal (usually `http://localhost:8081/_expo/plugins/expo-device-hub`) to view and control simulators and emulators. Restart an already-running dev server after installing dependencies. iOS simulators require macOS with Xcode; Android emulators require the Android SDK. The app still requires a custom development build.
 - For native iOS builds, run `npx expo run:ios --device` from `apps/mobile`. To build in Xcode, open `apps/mobile/ios/HCCNA.xcworkspace`; the workspace includes the CocoaPods dependencies required by the app. Opening `HCCNA.xcodeproj` alone causes missing React, Expo, and Firebase module errors.
 
-Structure and conventions: see [AGENTS.md](AGENTS.md). Completed design and implementation plans live in git history.
+Structure and conventions: see [AGENTS.md](AGENTS.md). Design specs and implementation plans are kept in the internal repository.
 
 ## Pull request labels
 

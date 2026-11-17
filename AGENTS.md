@@ -97,6 +97,5 @@ bun run refs:sync
 - `docs/secrets.md` — fresh-clone bootstrap: every untracked-but-required file and its source.
 - `docs/cms-change-notices.md` — how Strapi 4 and Strapi 5 notify the backend of content changes.
 - `docs/ota-updates.md` — how OTA updates and store builds fit the app, and what needs a store build.
-- Design docs for **completed** work are removed rather than kept as clutter — the monorepo
-  design spec and migration plan live in git history (`docs/superpowers/`, removed 2026-08-22).
-  Keep only docs describing pending work, live conventions, or operational procedures.
+- Design specs and implementation plans are kept in the internal repository, not here.
+  Keep only docs describing live conventions, architecture, or operational procedures.

@@ -56,8 +56,7 @@ pub struct Config {
     pub gateway: GatewayConfig,
 }
 
-/// Where the gateway forwards what Rust does not answer
-/// (`docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`, "Forwarding").
+/// Where the gateway forwards what Rust does not answer.
 #[derive(Clone, Debug)]
 pub struct GatewayConfig {
     /// `TS_ORIGIN_URL` (required, with no default) with the path `/graphql`. The variable

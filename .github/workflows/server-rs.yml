@@ -1,6 +1,5 @@
 # Checks the experimental Rust backend in apps/server-rs and builds its Docker image.
 # Nothing is pushed or deployed.
-# Design: docs/superpowers/specs/2026-10-13-server-rust-benchmark-design.md.
 name: server-rs
 
 on:
