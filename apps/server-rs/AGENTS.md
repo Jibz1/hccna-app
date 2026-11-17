@@ -1,10 +1,8 @@
 # apps/server-rs — Agent Guidelines
 
 An experimental Rust implementation of the GraphQL backend. It began as a port built to be
-benchmarked against `apps/server` (spec:
-`docs/superpowers/specs/2026-10-13-server-rust-benchmark-design.md`) and is now being brought to parity
-behind a gateway that answers the queries it has ported and forwards everything else to the TS
-server (spec: `docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`). No production client
+benchmarked against `apps/server` and is now being brought to parity behind a gateway that answers
+the queries it has ported and forwards everything else to the TS server. No production client
 uses it yet; the TS server still serves production.
 
 ## Branches
@@ -47,8 +45,7 @@ versions that support it: `sqlx` 0.9 needs 1.94, so the crate uses 0.8.
 
 ## Gateway
 
-The service answers some operations itself and forwards the rest to the TS server (`src/gateway`;
-design in `docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`).
+The service answers some operations itself and forwards the rest to the TS server (`src/gateway`).
 
 - A query is answered here only when every root field is in `gateway::route::LOCAL_FIELDS`, in
   `CCB_FIELDS` while the CCB client is configured, or in `PARTIAL_FIELDS` with only its listed

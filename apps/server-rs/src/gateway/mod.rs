@@ -1,6 +1,5 @@
 //! The gateway: this server answers the operations it has ported and forwards everything else
-//! to the TS server, so a client sees the complete API at every stage of the port
-//! (`docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`).
+//! to the TS server, so a client sees the complete API at every stage of the port.
 
 pub mod forward;
 pub mod route;

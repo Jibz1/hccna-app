@@ -1,5 +1,5 @@
-//! Experimental Rust implementation of the HCCNA GraphQL backend. It exists to be benchmarked
-//! against `apps/server`; see `docs/superpowers/specs/2026-10-13-server-rust-benchmark-design.md`.
+//! Experimental Rust implementation of the HCCNA GraphQL backend, built to be benchmarked against
+//! `apps/server` and now heading to parity with it.
 
 pub mod ccb;
 pub mod config;

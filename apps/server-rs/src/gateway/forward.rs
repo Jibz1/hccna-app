@@ -1,5 +1,4 @@
-//! Forwarding to the TS server (`docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`,
-//! "Forwarding"). The request goes to the configured URL with its body bytes and end-to-end
+//! Forwarding to the TS server. The request goes to the configured URL with its body bytes and end-to-end
 //! headers; the answer comes back with TS's status, headers and body bytes, still compressed if TS
 //! compressed it. One deadline covers the exchange, redirects are not followed, and nothing is
 //! retried, so a mutation runs at most once.

@@ -1,5 +1,4 @@
-//! Where an operation is answered: here, or by the TS server
-//! (`docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`, "Routing" and "Kill switch").
+//! Where an operation is answered: here, or by the TS server.
 
 use async_graphql::parser::types::{ExecutableDocument, OperationType};
 
