@@ -63,7 +63,7 @@ if (
   process.env.HCCNA_RELEASE_ENV !== "1"
 ) {
   throw new Error(
-    "[app.config] Store bundles must use the release environment. Build with `bun run ios:release`, `android:release`, or `android:bundle`, or run `bun run prebuild:release` before archiving in Xcode. See docs/ota-updates.md.",
+    "[app.config] Store bundles must use the release environment. Build with `bun run ios:release`, `android:release`, or `android:bundle`, or run `bun run prebuild:release` before archiving in Xcode.",
   );
 }
 

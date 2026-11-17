@@ -20,7 +20,7 @@ Bun 1.4 workspaces + Turborepo. Two apps, an experimental Rust backend, shared p
 - Shared dependency versions (including `effect`) live in the root `package.json` catalog; workspace packages declare `"effect": "catalog:"`.
 - Cross-workspace references always go through the package name (`@hccnj/schema/schema.graphql`, `import.meta.resolve(...)`, `require.resolve(...)`) — never deep relative paths like `../../packages/...`. Declare the package in `dependencies` (`"workspace:*"`) and give the owning package an `exports` entry for any file it shares.
 - Each app has its own `AGENTS.md` with app-specific conventions — read it before working in that app.
-- Secrets are never committed. `docs/secrets.md` documents every untracked-but-required file and where it comes from.
+- Secrets are never committed. Untracked-but-required files (env files, Firebase config, signing keys) are not documented here.
 
 ## No real user data in the repo
 
@@ -94,8 +94,6 @@ bun run refs:sync
 
 ## Docs
 
-- `docs/secrets.md` — fresh-clone bootstrap: every untracked-but-required file and its source.
-- `docs/cms-change-notices.md` — how Strapi 4 and Strapi 5 notify the backend of content changes.
-- `docs/ota-updates.md` — how OTA updates and store builds fit the app, and what needs a store build.
-- Design specs and implementation plans are kept in the internal repository, not here.
-  Keep only docs describing live conventions, architecture, or operational procedures.
+- `docs/architecture.md` — how the app, the backends, and the services around them fit together.
+- Operational procedures, setup guides, design specs and implementation plans are kept in the internal repository, not here.
+  Keep only docs describing live conventions or architecture.

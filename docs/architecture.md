@@ -16,8 +16,8 @@ flowchart LR
     end
 
     subgraph Edge
-        CF["api.hccnj.org<br/>Cloudflare"]
-        Stellate["Stellate GraphQL edge cache<br/>hccna.stellate.sh, older app versions"]
+        CF["Public API domain<br/>Cloudflare"]
+        Stellate["Stellate GraphQL edge cache<br/>older app versions"]
     end
 
     subgraph Hosting["Railway"]
@@ -29,7 +29,7 @@ flowchart LR
     end
 
     subgraph Content["Content and church data"]
-        CMS["Strapi 5 CMS<br/>cms.hccna.church"]
+        CMS["Strapi 5 CMS"]
         CCB["Church Community Builder"]
         Castr["Castr live streaming"]
         YT["YouTube Data API"]
@@ -135,7 +135,7 @@ sequenceDiagram
   not add Firestore reads.
 - **Strapi 5** is the source of content (campuses, events, sermons, featured cards). When
   editors publish, the CMS notifies the backend so it refreshes stored snapshots and drops
-  cached answers ([CMS change notices](cms-change-notices.md)).
+  cached answers.
 - **Church Community Builder** is the source of church records such as groups, attendance,
   and giving.
 
@@ -147,7 +147,7 @@ sequenceDiagram
 - **Push notifications.** The backend subscribes registered devices to Firebase Cloud
   Messaging topics and sends to those topics.
 - **OTA updates.** JavaScript-only changes reach installed apps through EAS Update when their
-  native fingerprint matches ([OTA updates](ota-updates.md)).
+  native fingerprint matches.
 
 ## Feature flags and observability
 

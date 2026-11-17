@@ -173,15 +173,15 @@ Unlike the rest of this document, the facts in this section are **not repository
 come from production `gcloud` observation (August 2026). Phase 0 records a dated, read-only
 infrastructure snapshot (step 0a) before anything acts on them.
 
-**Two schedulers, not one** (observed Aug 2026). `CastrPoll` (direct `run.app` URL) and
-`CastrStreamPoll` (`api.hccnj.org`) both invoke `pingCastrStream` every ten minutes. Overlapping
+**Two schedulers, not one** (observed Aug 2026). `CastrPoll` (direct service URL) and
+`CastrStreamPoll` (public API domain) both invoke `pingCastrStream` every ten minutes. Overlapping
 polls are the steady state.
 
 **The grace period equals the cadence.** A stream gets roughly one confirming poll before expiry —
 and with two racing pollers, _which_ poll wins can decide whether a stream ends.
 
 - Deduplicating the scheduler jobs is a **prerequisite** (step 0a). Decide whether the survivor is
-  the `api.hccnj.org` job (exercises the real proxy path) or the direct `run.app` job.
+  the public-domain job (exercises the real proxy path) or the direct service-URL job.
 - Dedupe reduces overlap; it does not eliminate it. Cron-vs-manual overlap remains by design, and a
   slow poll can overlap the next tick. Ordering safety comes from the application-level stale-write
   guard, never from scheduler topology.
@@ -575,7 +575,7 @@ Poll fields: `operation`, `trigger`, `pollRunId`, `snapshotObservedAt`, `request
 scoped, start/end, duration, Castr result count, projected stream count, transition count,
 `staleSkipped` count, transaction outcome, reconciliation outcome, **and the scheduler job identity
 while two jobs exist**. Concrete signal: the preserved payload carries no job ID, but the two jobs
-target different hostnames (`run.app` vs `api.hccnj.org`) — log the request `Host` header. Cloud
+target different hostnames (direct service URL vs public API domain) — log the request `Host` header. Cloud
 Scheduler may also send `X-CloudScheduler-JobName`; verify its presence in a production log sample
 before relying on it.
 
