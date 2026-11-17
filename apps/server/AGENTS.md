@@ -9,7 +9,7 @@
 
 ## Strapi 5 CMS contract
 
-When HCCNJ/site changes its rich-text editor extensions, enums or content types, run `bun run --cwd packages/strapi-v2 refresh-schema` from the repo root (it needs `CMS_V5_ENDPOINT` and a read-only Strapi 5 token in `CMS_V5_TOKEN`), update `packages/strapi-v2` if anything fails, and release the server before the CMS change goes live: an unknown node, mark or enum value fails the whole list as a Decode error by design. The change-notice contract, how the CMS calls `cmsWebhookUpdate` with `cmsVersion: V5` after a publish, unpublish or delete, is in `docs/cms-change-notices.md` at the repo root.
+When HCCNJ/site changes its rich-text editor extensions, enums or content types, run `bun run --cwd packages/strapi-v2 refresh-schema` from the repo root (it needs `CMS_V5_ENDPOINT` and a read-only Strapi 5 token in `CMS_V5_TOKEN`), update `packages/strapi-v2` if anything fails, and release the server before the CMS change goes live: an unknown node, mark or enum value fails the whole list as a Decode error by design. The CMS calls `cmsWebhookUpdate` with `cmsVersion: V5` after a publish, unpublish or delete.
 
 ## Build & Test
 

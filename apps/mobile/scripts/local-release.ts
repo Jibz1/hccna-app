@@ -78,7 +78,7 @@ function writeXcodeReleaseEnv() {
     '  "" | *Debug*) ;;',
     "  *)",
     `    HCCNA_RELEASE_SHELL_ENV="$(${command})" || {`,
-    '      echo "error: Could not load the release environment; see docs/ota-updates.md." >&2',
+    '      echo "error: Could not load the release environment." >&2',
     "      exit 1",
     "    }",
     '    eval "$HCCNA_RELEASE_SHELL_ENV"',

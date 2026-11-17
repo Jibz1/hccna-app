@@ -135,7 +135,7 @@ sequenceDiagram
   not add Firestore reads.
 - **Strapi 5** is the source of content (campuses, events, sermons, featured cards). When
   editors publish, the CMS notifies the backend so it refreshes stored snapshots and drops
-  cached answers ([CMS change notices](cms-change-notices.md)).
+  cached answers.
 - **Church Community Builder** is the source of church records such as groups, attendance,
   and giving.
 
@@ -147,7 +147,7 @@ sequenceDiagram
 - **Push notifications.** The backend subscribes registered devices to Firebase Cloud
   Messaging topics and sends to those topics.
 - **OTA updates.** JavaScript-only changes reach installed apps through EAS Update when their
-  native fingerprint matches ([OTA updates](ota-updates.md)).
+  native fingerprint matches.
 
 ## Feature flags and observability
 

@@ -68,7 +68,7 @@ export const KNOWN_OPERATION_NAMES_LIST = [
 	// Cloud Scheduler jobs
 	"SetVerseOfTheDay",
 	"VodPushNotification",
-	// Strapi 5 change notices (docs/cms-change-notices.md)
+	// Strapi 5 change notices
 	"Strapi5ChangeNoticeMutation",
 ] as const;
 

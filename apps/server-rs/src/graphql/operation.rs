@@ -88,7 +88,7 @@ pub const KNOWN_OPERATION_NAMES: [&str; 67] = [
     // Cloud Scheduler jobs
     "SetVerseOfTheDay",
     "VodPushNotification",
-    // Strapi 5 change notices (docs/cms-change-notices.md)
+    // Strapi 5 change notices
     "Strapi5ChangeNoticeMutation",
 ];
 
