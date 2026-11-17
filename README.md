@@ -1,5 +1,19 @@
 # HCCNA
 
+> [!IMPORTANT]
+> **This is a published copy of HCCNJ's internal production repository.**
+> Development, code review, releases, and deployments all happen in the internal repository.
+> This copy is refreshed from it as a single snapshot commit, without the internal history.
+>
+> - **Nothing here deploys.** CI only builds and tests; it has no Railway deploys, migrations,
+>   over-the-air (OTA) publishing, store releases, or other access to production services.
+> - **It may lag behind production.** The live app and backend can run newer code than this
+>   copy.
+> - **Running it needs your own services.** The server needs its own database, Redis, CMS, and
+>   third-party credentials (see [`docs/secrets.md`](docs/secrets.md)); none are included.
+> - The mobile app keeps the production backend URL and public client keys that ship in the
+>   store build, so a build made from this copy talks to production like the store app does.
+
 Monorepo for the HCCNA platform: the backend (`apps/server`, Railway) and the mobile app (`apps/mobile`, Expo/EAS), plus shared packages under `packages/`.
 
 ## Quickstart
