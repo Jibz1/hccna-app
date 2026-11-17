@@ -40,10 +40,8 @@ limited and holds real giving and attendance data). Their specs must revisit the
 - Branch workflow: phase 1 was built as a stack of PRs into `experiment/server-rust` and then landed on
   `main`. New work is a branch with a PR into `main`.
 - CI: `.github/workflows/server-rs.yml` runs `cargo fmt --check`, `cargo clippy -D warnings`,
-  `cargo test` and a Docker build for PRs and pushes that touch the crate. A push to
-  `main` deploys to Railway (`railway up --ci --service hccna-backend-rs`) once the
-  repository variable `SERVER_RS_DEPLOY_ENABLED` is `true`, then checks `/readyz`.
-  `deploy server`'s `apps/server/**` filter does not match `apps/server-rs/`.
+  `cargo test` and a Docker build for PRs and pushes that touch the crate. It does not
+  deploy.
 
 ### Docker image
 

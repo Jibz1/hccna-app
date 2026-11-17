@@ -92,22 +92,15 @@ Alloy's instance label identifies the private scrape endpoint, not a Railway rep
 The exporter buffers up to 100 batches in memory and retries transient failures; it has no
 persistent queue, so collector restarts can lose buffered samples.
 
-## Deploy
+## Build
 
-The build context is this directory. From the monorepo root:
-
-```sh
-bun run observability:collector:deploy
-```
-
-This targets only `hccna-grafana-alloy` in the Apps Backend production environment. Collector
-deployments are manual; publishing the dashboard does not redeploy any service. Keep the
+The build context is this directory. This repository has no deploy step for the collector;
+publishing the dashboard does not deploy anything either. Keep the
 Alloy version and image digest pinned together when upgrading. Validate configuration with
 `alloy validate config.alloy` using synthetic values for the three environment variables.
 
 The service must have one replica, no public domain, and the `/-/ready` health check on
-`PORT`. `railway.json` records its build, health-check, and restart settings. A successful CLI
-build is not a deployment health check; confirm the service reaches `SUCCESS` in Railway.
+`PORT`.
 
 Check `up{job="railway/hccna-backend-rs"} == 1` in Grafana, then verify increasing
 `http_server_request_duration_seconds_count` and the dashboard's five-minute rates. For export

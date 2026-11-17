@@ -16,8 +16,7 @@ async function runCommand(command: string[], envOverrides: NodeJS.ProcessEnv = {
 	}
 }
 
-// Production (Railway) sets RUN_MIGRATIONS=false and migrates only through the
-// manual "Drizzle Migrations CI" workflow.
+// Set RUN_MIGRATIONS=false on instances that must not migrate at start.
 if (process.env.RUN_MIGRATIONS !== "false") {
 	console.log("Running database migrations...");
 	await runCommand(["bun", "run", "db:migrate:run"]);

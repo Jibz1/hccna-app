@@ -89,16 +89,6 @@ logs one warning at startup.
 
 | Secret/Var | Used by |
 |---|---|
-| `RAILWAY_TOKEN` (secret in the `DATABASE_URL` environment) | Railway deploy in `deploy-server.yml`; `drizzle-migrations.yml` |
 | `TURBO_TOKEN` (secret), `TURBO_TEAM` (variable) | turbo remote cache in `checks.yml` |
 | `EXPO_TOKEN`, `MOBILE_GOOGLE_SERVICES_JSON_BASE64`, `MOBILE_GOOGLE_SERVICE_INFO_PLIST_BASE64`, `SENTRY_AUTH_TOKEN` (secrets in the `mobile-production` environment) | Manual OTA deploy in `deploy-mobile-update.yml`; see [OTA updates](ota-updates.md#deploying-from-github-actions) |
 
-`RAILWAY_TOKEN` is a Railway project token for the production environment (Railway project
-settings → Tokens). The migrations workflow uploads the selected revision to the
-`hccna-migrations` service. Its `DATABASE_URL` references `hccna-postgres.DATABASE_URL`
-inside Railway's private network; no database secret or public database URL is needed in GitHub.
-The service uses `apps/server/Dockerfile.migrations`, one replica, restart policy `NEVER`,
-and no public domain or volume. Manual runs default to `validate`, which checks the
-migration files and opens a private database connection without applying SQL. Select
-`migrate` explicitly to apply that revision's migrations. CI requires the runner's
-completion marker before reporting success.

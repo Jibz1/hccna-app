@@ -82,30 +82,17 @@ Load goes to Strapi, Firebase and Postgres, which production also uses. Schedule
 (not around Sunday services or Wednesday evenings, Eastern time). The rates are capped in the
 scripts for the same reason: `warm` 100 rps (cache hits only), `resolver` 20 rps, `cold` 2 rps.
 
-**Do not merge Rust app or deployment workflow changes into `main` during a benchmark window.**
-`.github/workflows/server-rs.yml` redeploys `hccna-backend-rs` on every push that touches
-`apps/server-rs/**` or `.github/workflows/server-rs.yml`, which restarts the target in the
-middle of a run (`valid` turns false, and the caches are cold again). Pause merges, or set
-`SERVER_RS_DEPLOY_ENABLED` to `false` for the window. Pushes to `main` do not redeploy the bench TS copy (it is deployed by hand).
+This repository's CI never deploys. Every service below is deployed by hand, so nothing restarts
+the targets in the middle of a run unless someone redeploys them.
 
 ## 1. GitHub
 
-1. Repository variable `SERVER_RS_DEPLOY_ENABLED=true`:
-   `gh variable set SERVER_RS_DEPLOY_ENABLED --body true`. Until then pushes to
-   `main` run checks and the image build but never deploy. Set it only after
-   section 3 has given `hccna-backend-rs` its variables, or the first push deploys a service with
-   no database or Redis settings.
-2. The deploy job uses the GitHub environment **`DATABASE_URL`**, which holds `RAILWAY_TOKEN`
-   (a Railway project token for `production`). The workflow deploys from `main`, which that
-   environment already allows, so its deployment branches need no change.
-3. The workflow health-checks `RAILWAY_HEALTH_URL` in `.github/workflows/server-rs.yml`
-   (`https://hccna-backend-rs-production.up.railway.app/readyz`). If the generated domain for
-   `hccna-backend-rs` differs, update that value on the branch.
+Nothing to set up: CI only checks the crate and builds its image.
 
 ## 2. Create the Railway services
 
 Create all four in project *Apps Backend*, environment `production`, region **us-east4**, with
-**one replica** each. Use the exact names; the private DNS names and the workflow depend on them.
+**one replica** each. Use the exact names; the private DNS names depend on them.
 
 Resource limits: give `hccna-backend-rs` and `hccna-backend-ts-bench` **identical** vCPU and memory
 limits (service Settings, resource limits). If `hccna-backend` has limits, copy them; otherwise use
@@ -188,8 +175,8 @@ side effects the bench copy must not have (Stellate, SendGrid, Sentry, OTLP, sch
 > **`RUN_MIGRATIONS=false` is mandatory and must be set before the first deploy.**
 > `apps/server/scripts/docker-entrypoint.ts` runs `db:migrate:run` at container start unless
 > `RUN_MIGRATIONS` is exactly `false`, and this service points at the production Postgres
-> (`hccna-postgres`). Migrations run only from the manual "Drizzle Migrations CI" workflow, never
-> from a deploy. Run the pre-deploy check below, and again before every redeploy that follows a
+> (`hccna-postgres`). This repository has no migration
+> workflow, and a deploy must never migrate. Run the pre-deploy check below, and again before every redeploy that follows a
 > variable change.
 
 | Variable | Value | Notes |
@@ -639,7 +626,7 @@ When the numbers are recorded:
    Delete), or remove their deployments, so they stop costing money. Deleting the Redis service also
    removes its TCP proxy. `hccna-backend-rs` stays: it is the long-lived parity service
    (`docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`).
-3. Leave the `SERVER_RS_DEPLOY_ENABLED` variable set: `hccna-backend-rs` keeps deploying from `main`.
+3. Leave `hccna-backend-rs` running: it is the long-lived parity service.
 4. Delete the anonymous Firebase users the runs created: Authentication, Users, provider
    Anonymous, created inside the benchmark window. Note the window in `RESULTS.md`.
 5. Confirm `hccna-backend` has no new deployments and `api.hccnj.org` is unchanged.

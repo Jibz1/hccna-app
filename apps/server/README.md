@@ -122,10 +122,10 @@ The backend is in an Effect-first migration. Hono and GraphQL Yoga are transport
 
 The project is designed to be deployed as a Docker container.
 - **Docker**: Use the provided `Dockerfile` and `docker-compose.yml`.
-- **Railway**: Production runs on Railway. The `deploy server` workflow (`.github/workflows/deploy-server.yml`) deploys pushes to `main` that touch the server; pull requests only build the image.
+- **CI**: The `server image` workflow (`.github/workflows/server-image.yml`) builds the image to check it; this repository has no deploy workflow.
 - **Stellate**: GraphQL caching is managed via Stellate (see `stellate.ts`).
 
 ### Migration Strategy
 
-- Production migrations run only when the owner dispatches the "Drizzle Migrations CI" workflow (`.github/workflows/drizzle-migrations.yml`), which runs `bun run db:migrate:run` against the Railway database. Deploys, pushes, and pull requests never migrate.
-- The container entrypoint runs migrations on startup unless `RUN_MIGRATIONS=false`. Railway sets `RUN_MIGRATIONS=false`, so production instances never migrate on boot; local and generic Docker startup migrate by default.
+- CI never runs migrations. Apply them against a database with `bun run db:migrate:run`.
+- The container entrypoint runs migrations on startup unless `RUN_MIGRATIONS=false`. Set `RUN_MIGRATIONS=false` on any instance that must not migrate on boot; local and generic Docker startup migrate by default.

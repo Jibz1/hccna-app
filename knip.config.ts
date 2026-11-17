@@ -4,7 +4,7 @@ export default {
 	workspaces: {
 		"apps/server": {
 			// The migration image invokes its script directly, outside package.json.
-			entry: ["stellate.ts", "scripts/railway-migrate.ts"],
+			entry: ["stellate.ts"],
 			ignoreDependencies: [
 				// Invoked by scripts/patch-effect-tsgo.ts via its bin path, which knip cannot trace.
 				"@effect/tsgo",
