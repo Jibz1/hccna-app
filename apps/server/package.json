@@ -34,9 +34,7 @@
 		"postinstall": "bun run scripts/patch-effect-tsgo.ts",
 		"typecheck": "bun run build",
 		"fmt:check": "oxfmt --check",
-		"emit-schema": "bun run scripts/emit-schema.ts",
-		"observability:dashboard:check": "bun scripts/publish-platform-dashboard.ts --check",
-		"observability:dashboard:publish": "bun scripts/publish-platform-dashboard.ts --publish"
+		"emit-schema": "bun run scripts/emit-schema.ts"
 	},
 	"dependencies": {
 		"@effect/opentelemetry": "4.0.5",

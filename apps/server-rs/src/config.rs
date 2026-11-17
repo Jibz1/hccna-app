@@ -56,16 +56,11 @@ pub struct Config {
     pub gateway: GatewayConfig,
 }
 
-/// The TS service's public Railway domain, bypassing Cloudflare: the gateway's origin when
-/// `TS_ORIGIN_URL` is unset, as in local runs. On Railway the variable names TS's private domain,
-/// which skips the edge.
-pub const DEFAULT_TS_ORIGIN_URL: &str = "https://hccna-backend-production.up.railway.app";
-
 /// Where the gateway forwards what Rust does not answer
 /// (`docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`, "Forwarding").
 #[derive(Clone, Debug)]
 pub struct GatewayConfig {
-    /// `TS_ORIGIN_URL` (default [`DEFAULT_TS_ORIGIN_URL`]) with the path `/graphql`. The variable
+    /// `TS_ORIGIN_URL` (required, with no default) with the path `/graphql`. The variable
     /// must be a bare `http` or `https` origin; nothing in a request changes this URL.
     pub ts_graphql_url: url::Url,
 }
@@ -315,9 +310,11 @@ impl Config {
 /// `TS_ORIGIN_URL` with the path `/graphql`. Only a bare `http(s)://host[:port]` is accepted, so a
 /// path, query or credentials in the variable cannot change where requests go.
 fn ts_graphql_url(env: &Env<'_>) -> Result<url::Url, ConfigError> {
+    // Required: a built-in default would send every forwarded request, mutations included, to
+    // whatever server it named.
     let value = env
         .string("TS_ORIGIN_URL")
-        .unwrap_or_else(|| DEFAULT_TS_ORIGIN_URL.to_owned());
+        .ok_or(ConfigError::Missing("TS_ORIGIN_URL"))?;
     let invalid = || ConfigError::Invalid {
         name: "TS_ORIGIN_URL",
         value: value.clone(),
@@ -420,11 +417,12 @@ mod tests {
         move |name| map.get(name).cloned()
     }
 
-    const REQUIRED: [(&str, &str); 4] = [
+    const REQUIRED: [(&str, &str); 5] = [
         ("DATABASE_URL", "postgres://ada:pw@localhost:5432/example"),
         ("REDIS_HOST", "localhost"),
         ("CMS_V5_ENDPOINT", "https://cms.example.com/graphql"),
         ("CMS_V5_TOKEN", "example-cms-token"),
+        ("TS_ORIGIN_URL", "http://127.0.0.1:8081"),
     ];
 
     #[test]
@@ -464,7 +462,7 @@ mod tests {
         assert_eq!(config.sentry.release, None);
         assert_eq!(
             config.gateway.ts_graphql_url.as_str(),
-            "https://hccna-backend-production.up.railway.app/graphql"
+            "http://127.0.0.1:8081/graphql"
         );
         assert_eq!(
             config.ccb_forms_url,
@@ -651,6 +649,18 @@ mod tests {
                 name: "VOD_TIMEZONE",
                 value: "Mars/Olympus".to_owned()
             }
+        );
+    }
+
+    #[test]
+    fn requires_the_ts_origin() {
+        let vars: Vec<_> = REQUIRED
+            .into_iter()
+            .filter(|(name, _)| *name != "TS_ORIGIN_URL")
+            .collect();
+        assert_eq!(
+            Config::from_lookup(lookup(&vars)).unwrap_err(),
+            ConfigError::Missing("TS_ORIGIN_URL")
         );
     }
 

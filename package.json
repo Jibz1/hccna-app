@@ -25,9 +25,7 @@
 		"codegen": "turbo run codegen",
 		"dev:server": "bun run --cwd apps/server dev",
 		"dev:mobile": "bun run --cwd apps/mobile dev:all",
-		"knip": "knip",
-		"observability:dashboard:check": "bun run --cwd apps/server observability:dashboard:check",
-		"observability:dashboard:publish": "bun run --cwd apps/server observability:dashboard:publish"
+		"knip": "knip"
 	},
 	"devDependencies": {
 		"turbo": "^2.11.9",

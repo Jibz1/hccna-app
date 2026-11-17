@@ -21,17 +21,13 @@ iOS signing (Apple Developer account → Membership details). Expo reads it as
 `ios.appleTeamId`; when unset, the config leaves the team unspecified. Release
 builds use `.env.production` over `.env` through the existing release loader.
 The team ID is part of the runtime fingerprint, so it is also a recorded release
-value that `--sync-env` copies to EAS.
+value.
 
-OTA updates read `MMKV_ENCRYPTION_KEY`, `APPLE_TEAM_ID`, and the `EXPO_PUBLIC_*`
-values from the EAS `production` environment, which must mirror
-`.env.production` over `.env`.
 The shared release loader reports the selected files and ignores developer-local
 files and inherited update values. Store builds must go through the release
 commands (`prebuild:release`, `ios:release`, `android:release`, `android:bundle`);
 the app config refuses store bundles made with Expo's own `.env*.local` selection.
-Copy only recorded release values with `bun run update:publish -- --sync-env` from
-`apps/mobile`; see [OTA updates](ota-updates.md).
+See [OTA updates](ota-updates.md).
 
 `apps/mobile/ota-release.json` is a committed, non-secret record of the store
 release: the existing storage-key hash, the hashes of the client-embedded update
@@ -52,16 +48,10 @@ Local infra (Postgres/Redis) comes from `apps/server/docker-compose.yml`.
 
 ### Grafana dashboard and collector
 
-`GRAFANA_TOKEN` in `apps/server/.env` is the existing Grafana dashboard API token for
-`https://hccna.grafana.net`. The dashboard publishing commands need data-source read and
-dashboard edit access. Restore it from the team password manager or the existing backend's
-Railway variables; never commit it.
-
 The `hccna-grafana-alloy` Railway service references the backend's
 `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` variables for ingestion, and
 the Rust service's private domain for scraping. It needs no local credential file. See the
-[collector setup](../apps/server/observability/alloy/README.md) for configuration, publishing,
-deployment, and verification.
+[collector setup](../apps/server/observability/alloy/README.md) for configuration and verification.
 
 ### CMS settings (Strapi 5)
 
@@ -90,5 +80,4 @@ logs one warning at startup.
 | Secret/Var | Used by |
 |---|---|
 | `TURBO_TOKEN` (secret), `TURBO_TEAM` (variable) | turbo remote cache in `checks.yml` |
-| `EXPO_TOKEN`, `MOBILE_GOOGLE_SERVICES_JSON_BASE64`, `MOBILE_GOOGLE_SERVICE_INFO_PLIST_BASE64`, `SENTRY_AUTH_TOKEN` (secrets in the `mobile-production` environment) | Manual OTA deploy in `deploy-mobile-update.yml`; see [OTA updates](ota-updates.md#deploying-from-github-actions) |
 

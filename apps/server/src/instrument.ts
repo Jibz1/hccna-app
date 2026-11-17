@@ -11,13 +11,12 @@ initializeGlobalOpenTelemetry();
 const appConfig = loadAppConfigSync();
 const SAMPLE_RATE = appConfig.observability.sentrySampleRate;
 const TRACES_SAMPLE_RATE = appConfig.observability.sentryTracesSampleRate;
-const DEFAULT_SENTRY_DSN =
-	"https://e4b420c99240b2d01277da0240a2fe1d@o4509593910378496.ingest.us.sentry.io/4510513578180608";
 
 Sentry.init({
 	enabled: appConfig.isProduction || appConfig.observability.sentryEnabled,
 
-	dsn: appConfig.observability.sentryDsn ?? DEFAULT_SENTRY_DSN,
+	// Without SENTRY_DSN the SDK sends nothing.
+	dsn: appConfig.observability.sentryDsn,
 
 	debug: false,
 
