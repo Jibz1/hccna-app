@@ -23,6 +23,11 @@ PRs are labeled automatically from changed paths using [.github/labeler.yml](.gi
 
 To add a category, create its label in GitHub and add its path rules to the configuration. The workflow reads rules from the base branch, so new rules take effect after merge.
 
+## Architecture
+
+[docs/architecture.md](docs/architecture.md) shows how the app, the backends, and the services
+around them fit together, with a system diagram and a typical request.
+
 ## License
 
 Copyright © HolyGhost Christian Center North America (HCCNA). All rights reserved.
