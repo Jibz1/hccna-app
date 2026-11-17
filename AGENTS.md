@@ -4,9 +4,9 @@ Bun 1.4 workspaces + Turborepo. Two apps, an experimental Rust backend, shared p
 
 | Path | What it is |
 |---|---|
-| `apps/server` | GraphQL/REST backend (Hono + Yoga + Pothos + Drizzle, Effect). Deploys to Railway via the `deploy server` GitHub Actions workflow. |
+| `apps/server` | GraphQL/REST backend (Hono + Yoga + Pothos + Drizzle, Effect). This repository builds its Docker image in CI but does not deploy it. |
 | `apps/mobile` | Expo SDK 58 React Native app (Relay, Effect, uniwind). Store builds are made locally; OTA updates go through EAS Update. |
-| `apps/server-rs` | Experimental Rust port of the GraphQL backend (axum + async-graphql), heading to parity with `apps/server`: it answers the queries it has ported and forwards everything else to `apps/server`. No production client uses it yet. A Cargo crate, not a Bun workspace. Deploys to the Railway service `hccna-backend-rs` via the `server-rs` workflow. |
+| `apps/server-rs` | Experimental Rust port of the GraphQL backend (axum + async-graphql), heading to parity with `apps/server`: it answers the queries it has ported and forwards everything else to `apps/server`. No production client uses it yet. A Cargo crate, not a Bun workspace. CI checks it and builds its image; nothing deploys it. |
 | `packages/castr`, `packages/ccb`, `packages/strapi-v2` | Server-side integration libraries (`@hccnj/*`). |
 | `packages/schema` | GraphQL contract: `schema.graphql` (SDL only; each app runs its own codegen). |
 | `packages/config` | Shared tsconfig bases and tooling presets. |

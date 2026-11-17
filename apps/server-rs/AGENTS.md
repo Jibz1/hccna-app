@@ -10,8 +10,8 @@ uses it yet; the TS server still serves production.
 ## Branches
 
 The crate lives on `main` like the rest of the monorepo: every change is a branch with a PR into
-`main`. A push to `main` that touches the crate deploys it to the Railway service `hccna-backend-rs`
-(see `.github/workflows/server-rs.yml`).
+`main`. CI (`.github/workflows/server-rs.yml`) checks the crate and builds its image; nothing deploys
+it from this repository.
 
 ## Commands (run in `apps/server-rs`)
 

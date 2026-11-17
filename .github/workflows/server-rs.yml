@@ -1,17 +1,17 @@
-# Checks and builds the experimental Rust backend in apps/server-rs, and deploys it to its own
-# Railway service from main. It never touches the production TS service
-# (hccna-backend). Design: docs/superpowers/specs/2026-10-13-server-rust-benchmark-design.md.
+# Checks the experimental Rust backend in apps/server-rs and builds its Docker image.
+# Nothing is pushed or deployed.
+# Design: docs/superpowers/specs/2026-10-13-server-rust-benchmark-design.md.
 name: server-rs
 
 on:
   push:
     branches: [main]
-    # Deploy for changes to the Rust app or its deployment workflow.
+    # Changes to the Rust app or this workflow.
     paths:
       - "apps/server-rs/**"
       - ".github/workflows/server-rs.yml"
   pull_request:
-    # Also validate shared contracts on PRs without deploying those changes.
+    # PRs also check the shared contracts the crate reads.
     paths:
       - "apps/server-rs/**"
       - "packages/schema/schema.graphql"
@@ -27,11 +27,6 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  RAILWAY_CLI_VERSION: "5.63.1"
-  RAILWAY_ENVIRONMENT: production
-  RAILWAY_SERVICE: hccna-backend-rs
-  # Railway's generated domain for the service. Update it if the service domain changes.
-  RAILWAY_HEALTH_URL: https://hccna-backend-rs-production.up.railway.app/readyz
 
 jobs:
   check:
@@ -104,63 +99,3 @@ jobs:
           provenance: false
           cache-from: type=gha,scope=server-rs-image
           cache-to: type=gha,scope=server-rs-image,mode=max
-
-  # Deploys only after the Railway service exists and the owner sets the repository variable
-  # SERVER_RS_DEPLOY_ENABLED=true (apps/server-rs/bench/RUNBOOK.md).
-  deploy-railway:
-    needs: [check, image]
-    if: github.event_name == 'push' && vars.SERVER_RS_DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment: DATABASE_URL
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      DEPLOY_MESSAGE: ${{ github.sha }} (run ${{ github.run_id }})
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-
-      - name: Install Railway CLI
-        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}"
-
-      # Sentry tags the service's events with SENTRY_RELEASE. CLI deploys get no
-      # RAILWAY_GIT_COMMIT_SHA, so the commit is recorded here, without its own redeploy;
-      # the `railway up` below picks it up. A failure here never blocks the deploy.
-      - name: Record the release for Sentry
-        run: |
-          railway variable set "SENTRY_RELEASE=${GITHUB_SHA}" \
-            --service "$RAILWAY_SERVICE" \
-            --environment "$RAILWAY_ENVIRONMENT" \
-            --skip-deploys ||
-            echo "::warning::Could not set SENTRY_RELEASE; Sentry events keep the previous release"
-
-      # Uploads the monorepo root; the service builds apps/server-rs/Dockerfile.
-      - name: Deploy to Railway
-        run: |
-          railway up --ci \
-            --service "$RAILWAY_SERVICE" \
-            --environment "$RAILWAY_ENVIRONMENT" \
-            --message "$DEPLOY_MESSAGE"
-
-      - name: Wait for deployment
-        run: |
-          for attempt in $(seq 1 60); do
-            status=$(railway deployment list --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --json --limit 10 |
-              jq -r --arg message "$DEPLOY_MESSAGE" '[.[] | select(.meta.cliMessage == $message)][0].status // "PENDING"')
-            case "$status" in
-              SUCCESS) echo "Railway deployment is active"; exit 0 ;;
-              FAILED|CRASHED|REMOVED|SKIPPED) echo "::error::Railway deployment ended as $status"; exit 1 ;;
-            esac
-            echo "deployment status (check $attempt): $status"
-            sleep 10
-          done
-          echo "::error::Railway deployment did not become active in time"
-          exit 1
-
-      - name: Health check
-        run: |
-          curl --fail --silent --show-error --max-time 10 --retry 5 --retry-all-errors --retry-delay 5 "$RAILWAY_HEALTH_URL"
-          echo
-          echo "Railway is ready ($RAILWAY_HEALTH_URL)"

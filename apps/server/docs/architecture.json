@@ -579,11 +579,11 @@
 	],
 	"deployment": {
 		"container": "Dockerfile + docker-compose.yml",
-		"cloud": "Railway via .github/workflows/deploy-server.yml",
+		"cloud": "Docker image built by .github/workflows/server-image.yml; not deployed from CI",
 		"edgeCache": "Stellate (stellate.ts) for GraphQL",
 		"migrations": {
 			"container": "run on startup unless RUN_MIGRATIONS=false",
-			"production": "manual Drizzle Migrations CI workflow (`bun run db:migrate:run`)",
+			"production": "run by hand (`bun run db:migrate:run`); CI never migrates",
 			"envOverride": "RUN_MIGRATIONS=false (set on Railway)"
 		}
 	},
