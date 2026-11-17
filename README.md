@@ -41,11 +41,3 @@ To add a category, create its label in GitHub and add its path rules to the conf
 
 [docs/architecture.md](docs/architecture.md) shows how the app, the backends, and the services
 around them fit together, with a system diagram and a typical request.
-
-## License
-
-Copyright © HolyGhost Christian Center North America (HCCNA). All rights reserved.
-
-The source is published for reference only. No license is granted to copy, modify, or
-distribute it. The church's names, logos, and photographs are not covered by any license.
-`packages/anti-slop` is third-party code under its own license (`packages/anti-slop/LICENSE`).
