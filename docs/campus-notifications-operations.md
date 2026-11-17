@@ -5,13 +5,9 @@ deploy the backend before releasing the new mobile app. The new mobile operation
 require the additive campus fields; old GraphQL operations remain valid. Older
 clients continue using explicit channels.
 
-PR schema CI validates mobile operations against the proposed schema and compares
-the deployed API to that schema for breaking changes. Additive backend/mobile work
-can merge before deployment; a green PR check does not mean production is ready
-for the new app. Scheduled and manual `schema drift` runs still validate the
-selected mobile revision against production. Run the workflow manually on the
-mobile release revision after backend deployment, and require it to pass before
-publishing that release. The check fails if introspection is unavailable.
+This repository's CI does not compare the schema with the deployed API. Additive
+backend/mobile work can merge before deployment; a green PR check does not mean
+production is ready for the new app.
 
 ## Subscription reconciliation
 

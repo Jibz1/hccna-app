@@ -52,23 +52,10 @@ forward a request to TypeScript, so its duration can include the TypeScript exec
 network overhead. Use the call counts to judge coverage and traces or controlled read-only
 benchmarks to investigate individual differences.
 
-## Publish the dashboard
+## Dashboard
 
-Set `GRAFANA_TOKEN` in `apps/server/.env` or the command's environment. This is the existing
-Grafana dashboard API token, not the OTLP ingestion credential. It needs access to read the
-Prometheus data source and edit this dashboard. From the monorepo root:
-
-```sh
-bun run observability:dashboard:check
-bun run observability:dashboard:publish
-```
-
-Both commands validate all PromQL queries against the live data source using the filters' All
-values and a six-hour window for selected-range queries. `--check` only reads.
-Publishing preserves the dashboard UID and folder, uses the current version to reject a
-concurrent edit, and reads back the saved panels. It updates this dashboard from the local JSON;
-export any desired Grafana UI edits back to that file before publishing. Grafana's version
-history retains the previous dashboard for rollback.
+`observability/grafana/dashboards/backend-platforms.json` is the dashboard definition. This
+repository has no command that publishes it; it is kept for reference.
 
 ## Railway variables
 

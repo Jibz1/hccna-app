@@ -32,8 +32,6 @@
     "generate--android-native-build": "bun --no-env-file ./scripts/generate-android-native-build.ts",
     "relay": "relay-compiler",
     "doctor": "npx react-doctor@latest",
-    "schema:drift:pull": "bun run ./scripts/download-deployed-schema.ts",
-    "update:publish": "bun --no-env-file ./scripts/publish-update.ts",
     "version:bump": "bun --no-env-file ./scripts/version.ts",
     "codegen": "relay-compiler",
     "dev:all": "bun run scripts/dev.mjs",

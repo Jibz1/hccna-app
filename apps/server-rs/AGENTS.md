@@ -57,9 +57,9 @@ design in `docs/superpowers/specs/2026-10-14-server-rs-parity-design.md`).
   never split. A partial field's type defines only its listed fields, which the contract test checks.
 - Nothing is answered here while the Statsig gate `server_rs_serve_locally` is off, unknown or
   unavailable: the service is then a pass-through.
-- Running the binary locally without `STATSIG_SERVER_SECRET_KEY` forwards every request, mutations
-  included, to the default `TS_ORIGIN_URL`, which is the production TS service. When running
-  locally, point `TS_ORIGIN_URL` at a local TS server.
+- `TS_ORIGIN_URL` is required and has no default. Running the binary locally without
+  `STATSIG_SERVER_SECRET_KEY` forwards every request, mutations included, to that origin, so
+  point it at a local TS server.
 - Tests never reach a real TS server: `test_support::config` points `TS_ORIGIN_URL` at a closed
   port, and gateway tests start a `MockOrigin`.
 
