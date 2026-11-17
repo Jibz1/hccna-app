@@ -42,13 +42,13 @@ only needed for non-EAS local release builds.
 
 | File | Purpose | Where it comes from |
 |---|---|---|
-| `.env` | Local dev env (`DATABASE_URL`, `REDIS_URL`, `CASTR_*`, `CCB_*`, `SENDGRID_API_KEY`, `CMS_V5_ENDPOINT` and `CMS_V5_TOKEN` (see below), Firebase admin, …) | Team password manager / a teammate; production values live in the Railway `hccna-backend` service variables. The pre-monorepo working copy at `HCCNA-Project/backend/.env` has a known-good copy (there's also a `.env.example`). Without it, `bun run dev` fails at startup with an Effect `ConfigError` naming the first missing variable. |
+| `.env` | Local dev env (`DATABASE_URL`, `REDIS_URL`, `CASTR_*`, `CCB_*`, `SENDGRID_API_KEY`, `CMS_V5_ENDPOINT` and `CMS_V5_TOKEN` (see below), Firebase admin, …) | Team password manager / a teammate; production values live in the backend service's variables on the host. There's also a `.env.example`. Without it, `bun run dev` fails at startup with an Effect `ConfigError` naming the first missing variable. |
 
 Local infra (Postgres/Redis) comes from `apps/server/docker-compose.yml`.
 
 ### Grafana dashboard and collector
 
-The `hccna-grafana-alloy` Railway service references the backend's
+The Grafana Alloy collector service references the backend's
 `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` variables for ingestion, and
 the Rust service's private domain for scraping. It needs no local credential file. See the
 [collector setup](../apps/server/observability/alloy/README.md) for configuration and verification.
@@ -60,7 +60,7 @@ locally too.
 
 | Variable | Purpose | Where it comes from |
 |---|---|---|
-| `CMS_V5_ENDPOINT` | `https://cms.hccna.church/graphql` | Railway service variables; local `.env` |
+| `CMS_V5_ENDPOINT` | The CMS's GraphQL URL | Service variables on the host; local `.env` |
 | `CMS_V5_TOKEN` (secret) | Read-only custom API token: `find`/`findOne` on the 13 content types the server reads (app-config, home, campus, leader-ship, event, sermon, sermon-page, tog, stream, check-in-permission, kids-checkin, department, ministry), plus upload `find` if media come back empty | Strapi 5 admin → Settings → API Tokens; store in Railway variables and the local `.env` |
 | `CMS_WEBHOOK_SECRET` (secret) | The secret the Strapi 5 CMS sends in the `x-cms-webhook-secret` header on `cmsWebhookUpdate` notices with `cmsVersion: V5` ([CMS change notices](cms-change-notices.md)) | Generate (`openssl rand -hex 32`); store it in Railway's backend variables and in the Strapi 5 CMS's environment |
 

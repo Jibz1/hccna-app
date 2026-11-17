@@ -1,13 +1,12 @@
 # Rust metrics in Grafana
 
-The `hccna-grafana-alloy` service in Railway's Apps Backend production environment scrapes
-`hccna-backend-rs` over the private network every 60 seconds and exports metrics through the
+The Grafana Alloy collector service scrapes the Rust
+backend over the private network every 60 seconds and exports metrics through the
 same Grafana OTLP gateway as the TypeScript backend. It has no public domain. Its `PORT`
 (12345 unless Railway sets another value) serves Alloy's health and diagnostic endpoints; the
 Rust metrics port remains private.
 
-The dashboard [HCCNA Backend: Cloud Run vs Railway](https://hccna.grafana.net/d/hccna-backend-platforms)
-includes Rust as `railway/hccna-backend-rs`. Its source is
+The backend platforms dashboard includes the Rust backend. Its source is
 `../grafana/dashboards/backend-platforms.json`. Gateway panels separate Rust's `local` and
 `forward` routes. Rates need at least two scrapes; old time ranges have no Rust data before
 the collector was deployed.
@@ -63,9 +62,9 @@ Use these references on the collector; do not copy secret values into files:
 
 | Variable | Value |
 | --- | --- |
-| `RUST_METRICS_ADDRESS` | `${{hccna-backend-rs.RAILWAY_PRIVATE_DOMAIN}}:9184` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `${{hccna-backend.OTEL_EXPORTER_OTLP_ENDPOINT}}` |
-| `OTEL_EXPORTER_OTLP_HEADERS` | `${{hccna-backend.OTEL_EXPORTER_OTLP_HEADERS}}` |
+| `RUST_METRICS_ADDRESS` | The Rust service's private domain, port `9184` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | A reference to the TS backend's `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| `OTEL_EXPORTER_OTLP_HEADERS` | A reference to the TS backend's `OTEL_EXPORTER_OTLP_HEADERS` |
 
 The header variable must contain one `Authorization=Basic%20<base64 instance:token>` entry,
 matching the current TypeScript service. Alloy decodes it into basic-auth credentials so the
@@ -89,7 +88,7 @@ Alloy version and image digest pinned together when upgrading. Validate configur
 The service must have one replica, no public domain, and the `/-/ready` health check on
 `PORT`.
 
-Check `up{job="railway/hccna-backend-rs"} == 1` in Grafana, then verify increasing
+Check that the Rust scrape job's `up` series is 1 in Grafana, then verify increasing
 `http_server_request_duration_seconds_count` and the dashboard's five-minute rates. For export
 failures, inspect the collector's Railway logs. `/-/ready` confirms the configuration is valid;
 it does not establish that scraping or exporting succeeds.

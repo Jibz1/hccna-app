@@ -16,8 +16,8 @@ flowchart LR
     end
 
     subgraph Edge
-        CF["api.hccnj.org<br/>Cloudflare"]
-        Stellate["Stellate GraphQL edge cache<br/>hccna.stellate.sh, older app versions"]
+        CF["Public API domain<br/>Cloudflare"]
+        Stellate["Stellate GraphQL edge cache<br/>older app versions"]
     end
 
     subgraph Hosting["Railway"]
@@ -29,7 +29,7 @@ flowchart LR
     end
 
     subgraph Content["Content and church data"]
-        CMS["Strapi 5 CMS<br/>cms.hccna.church"]
+        CMS["Strapi 5 CMS"]
         CCB["Church Community Builder"]
         Castr["Castr live streaming"]
         YT["YouTube Data API"]

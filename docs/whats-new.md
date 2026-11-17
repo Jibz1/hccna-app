@@ -7,9 +7,9 @@ The app reads two Statsig controls:
 | `show_whats_new` | Feature gate | Enables the automatic prompt for the targeted users. Default: off. |
 | `whats_new` | Dynamic config | Provides the release version, heading, and highlights. |
 
-The [feature gate](https://console.statsig.com/86LV7Lqh5sB8hQFmSgZKf/gates/show_whats_new)
+The feature gate
 starts with no passing rules. The
-[dynamic config](https://console.statsig.com/86LV7Lqh5sB8hQFmSgZKf/dynamic_configs/whats_new)
+dynamic config
 contains the 1.1.6 notes below. Keeping the gate off allows manual visits without
 automatic prompts. An empty `{}` config also prevents automatic prompts.
 

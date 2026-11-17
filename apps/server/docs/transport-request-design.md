@@ -385,7 +385,7 @@ Maps-derived address, coordinate, route, ETA, and polyline content is deleted or
 within the applicable policy window; this design uses a maximum of 30 days. Public Terms
 of Use and Privacy Policy disclose Google Maps Platform use before release.
 
-Why Google over alternatives: the project already lives on GCP (`app-hccnj`); best NJ
+Why Google over alternatives: the project already lives on GCP; best NJ
 geocoding; Places Autocomplete UX riders know; Routes waypoint optimization is exactly
 "plot the best route". **Mapbox** (fine second choice, second vendor for zero savings),
 **self-hosted OSRM/OpenRouteService** (free, but an ops burden for ~15 route calls a

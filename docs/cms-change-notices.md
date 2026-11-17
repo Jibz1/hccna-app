@@ -1,14 +1,14 @@
 # CMS change notices
 
-When editors publish, unpublish or delete content, the Strapi 5 CMS (`cms.hccna.church`, HCCNJ/site
-`apps/cms`) tells the backend so it can refresh the snapshots it stores (core settings, featured
+When editors publish, unpublish or delete content, the Strapi 5 CMS (a separate
+repository) tells the backend so it can refresh the snapshots it stores (core settings, featured
 cards) and drop cached answers. An event-hub subscriber in the CMS's own code calls the GraphQL
 mutation `cmsWebhookUpdate` (`apps/server/src/graphql/schema/cms/webhookUpdate.ts`) with
 `cmsVersion: V5` and the `x-cms-webhook-secret` header.
 
 ## Strapi 4 notices (retired)
 
-Strapi 4 (`cms.hccnj.org`) is retired and the backend no longer reads it. Its lifecycle hook sent
+Strapi 4 is retired and the backend no longer reads it. Its lifecycle hook sent
 no `cmsVersion`. The schema keeps the deprecated `V4` value so the deployed contract stays
 compatible. A notice without `cmsVersion: V5` does nothing, answers
 `{ success: true, message: "Ignored: Strapi 4 notice" }`, and logs the warning
@@ -18,7 +18,7 @@ compatible. A notice without `cmsVersion: V5` does nothing, answers
 
 ### Request
 
-`POST https://hccna-backend-production.up.railway.app/graphql` with these headers:
+`POST` to the backend's `/graphql` endpoint with these headers:
 
 - `Content-Type: application/json`
 - `Authorization: Bearer <credential>`. The mutation keeps its auth scope
